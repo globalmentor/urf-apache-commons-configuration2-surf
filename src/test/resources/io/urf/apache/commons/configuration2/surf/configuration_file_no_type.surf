@@ -1,4 +1,4 @@
-*Config:
+*:
 	authenticated = true
 	sort = 'd'
 	name = "Jane Doe"

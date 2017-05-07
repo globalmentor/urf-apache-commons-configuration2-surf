@@ -24,8 +24,6 @@ import org.apache.commons.configuration2.BaseHierarchicalConfiguration;
 import org.apache.commons.configuration2.FileBasedConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 
-import com.globalmentor.java.Conditions;
-
 import io.urf.surf.parser.*;
 
 import static java.util.Objects.*;
@@ -44,10 +42,16 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	public void read(@Nonnull Reader in) throws ConfigurationException, IOException {
 		final BufferedReader bufferedIn = new BufferedReader(requireNonNull(in));
 
-		new SurfParser().parse(bufferedIn).ifPresent(surfObject -> {
-			Conditions.checkConfiguration(surfObject instanceof SurfObject, "The root element of the configuration file must be a SurfObject");
-			this.surfObject = (SurfObject)surfObject;
-		});
+		final Object surfDocument = new SurfParser().parse(bufferedIn).orElse(null);
+
+		if(surfDocument instanceof SurfObject) {
+			this.surfObject = (SurfObject)surfDocument;
+		} else if(surfDocument == null) {
+			clear(); //TODO implement clearInternal() to make this work, this have to verify if the surfObject is null, if so, it won't be touched, but if surfObject is not null, it'll only clean all the properties inside of it
+		} else {
+			throw new ConfigurationException("The root element of the configuration file must be a SurfObject");
+		}
+
 	}
 
 	@Override

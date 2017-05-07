@@ -49,7 +49,7 @@ public class SurfConfigurationTest {
 	 */
 	@Test
 	public void testEmptySurfFile() throws ConfigurationException, URISyntaxException {
-		final Path configPath = Paths.get(this.getClass().getResource("empty_file.surf").toURI());
+		final URL configPath = this.getClass().getResource("empty_file.surf");
 
 		final Configuration config = createConfiguration(configPath);
 
@@ -64,7 +64,7 @@ public class SurfConfigurationTest {
 	 */
 	@Test
 	public void testEmptySurfConfiguration() throws ConfigurationException, URISyntaxException {
-		final Path configPath = Paths.get(this.getClass().getResource("empty_configuration_file.surf").toURI());
+		final URL configPath = this.getClass().getResource("empty_configuration_file.surf");
 
 		final Configuration config = createConfiguration(configPath);
 
@@ -79,7 +79,7 @@ public class SurfConfigurationTest {
 	 */
 	@Test
 	public void testSurfConfigurationWithStringProperties() throws ConfigurationException, URISyntaxException {
-		final Path configPath = Paths.get(this.getClass().getResource("strings_configuration_file.surf").toURI());
+		final URL configPath = this.getClass().getResource("configuration_file_strings.surf");
 
 		final Configuration config = createConfiguration(configPath);
 
@@ -88,7 +88,33 @@ public class SurfConfigurationTest {
 		assertThat(config.getProperty("name"), is("Jane"));
 		assertThat(config.getProperty("lastName"), is("Doe"));
 	}
-	
+
+	/**
+	 * Test whether the configuration is working with properties of every type when the root object has no type.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 * @throws URISyntaxException if there's an error while trying to get the URI of the configuration file.
+	 */
+	@Test
+	public void testSurfConfigurationWithoutType() throws ConfigurationException, URISyntaxException {
+		final URL configPath = this.getClass().getResource("configuration_file_no_type.surf");
+
+		final Configuration config = createConfiguration(configPath);
+
+		assertThat(config.isEmpty(), is(false));
+
+		//TODO add UUID
+		assertThat(config.getProperty("authenticated"), is(true));
+		assertThat(config.getProperty("sort"), equalTo('d'));
+		assertThat(config.getProperty("name"), equalTo("Jane Doe"));
+		assertThat(config.getProperty("account"), equalTo("jane_doe@example.com"));
+		assertThat(config.getProperty("aliases"), equalTo(Collections.createHashSet("jdoe", "janed")));
+		assertThat(config.getProperty("homePage"), equalTo(new URI("http://www.example.com/jdoe/")));
+		assertThat(config.getProperty("salt"), equalTo(new byte[] {102, 111, 111, 98, 97, 114}));
+		assertThat(config.getProperty("joined"), equalTo(LocalDate.parse("2016-01-23")));
+		assertThat(config.getProperty("credits"), equalTo(123));
+	}
+
 	/**
 	 * Test whether the configuration is working with properties of every type.
 	 * 
@@ -97,7 +123,7 @@ public class SurfConfigurationTest {
 	 */
 	@Test
 	public void testSurfConfiguration() throws ConfigurationException, URISyntaxException {
-		final Path configPath = Paths.get(this.getClass().getResource("configuration_file.surf").toURI());
+		final URL configPath = this.getClass().getResource("configuration_file.surf");
 
 		final Configuration config = createConfiguration(configPath);
 
@@ -118,13 +144,13 @@ public class SurfConfigurationTest {
 	/**
 	 * Method to help with the creation of the {@link SurfConfiguration}.
 	 * 
-	 * @param configPath The {@link Path} of the file that will be used to store the configurations.
+	 * @param configURL The {@link Path} of the file that will be used to store the configurations.
 	 * 
 	 * @return The {@link SurfConfiguration} ready to be used.
 	 * @throws ConfigurationException if any error occur while configuring the file.
 	 */
-	private Configuration createConfiguration(@Nonnull final Path configPath) throws ConfigurationException {
-		return new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class).configure(new Parameters().fileBased().setFile(configPath.toFile()))
+	private Configuration createConfiguration(@Nonnull final URL configURL) throws ConfigurationException {
+		return new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class).configure(new Parameters().fileBased().setURL(configURL))
 				.getConfiguration();
 	}
 

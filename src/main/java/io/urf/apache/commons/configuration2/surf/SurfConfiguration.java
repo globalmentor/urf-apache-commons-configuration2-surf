@@ -36,7 +36,7 @@ import static java.util.Objects.*;
 public class SurfConfiguration extends BaseHierarchicalConfiguration implements FileBasedConfiguration {
 
 	/** The root object where the properties will be added. */
-	private SurfObject surfObject; //TODO QUESTION: The <typeName> of the root object will be flexible when reading or it must always be "Config"?
+	private SurfObject surfObject;
 
 	@Override
 	public void read(@Nonnull Reader in) throws ConfigurationException, IOException {

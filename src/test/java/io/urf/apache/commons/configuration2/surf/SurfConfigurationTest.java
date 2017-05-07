@@ -90,6 +90,19 @@ public class SurfConfigurationTest {
 	}
 
 	/**
+	 * Test whether the configuration is throwing an exception if the resource isn't a valid configuration file.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 * @throws URISyntaxException if there's an error while trying to get the URI of the configuration file.
+	 */
+	@Test(expected=ConfigurationException.class)
+	public void testInvalidSurfConfiguration() throws ConfigurationException, URISyntaxException {
+		final URL configPath = this.getClass().getResource("invalid_configuration_file.surf");
+
+		createConfiguration(configPath);
+	}
+
+	/**
 	 * Test whether the configuration is working with properties of every type when the root object has no type.
 	 * 
 	 * @throws ConfigurationException if any error occur while configuring the file.

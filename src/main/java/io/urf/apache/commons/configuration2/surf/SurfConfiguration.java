@@ -24,6 +24,8 @@ import org.apache.commons.configuration2.BaseHierarchicalConfiguration;
 import org.apache.commons.configuration2.FileBasedConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 
+import com.globalmentor.java.Conditions;
+
 import io.urf.surf.parser.*;
 
 import static java.util.Objects.*;
@@ -42,7 +44,10 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	public void read(@Nonnull Reader in) throws ConfigurationException, IOException {
 		final BufferedReader bufferedIn = new BufferedReader(requireNonNull(in));
 
-		new SurfParser().parse(bufferedIn).ifPresent(surfObject -> this.surfObject = (SurfObject)surfObject);
+		new SurfParser().parse(bufferedIn).ifPresent(surfObject -> {
+			Conditions.checkConfiguration(surfObject instanceof SurfObject, "The root element of the configuration file must be a SurfObject");
+			this.surfObject = (SurfObject)surfObject;
+		});
 	}
 
 	@Override

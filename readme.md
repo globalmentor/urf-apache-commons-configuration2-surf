@@ -13,4 +13,5 @@ Issues tracked by [JIRA](https://globalmentor.atlassian.net/projects/URF/).
 ## Changelog
 
 - 1.0.0: 
+	* [URF-18](https://globalmentor.atlassian.net/browse/URF-16): Implemented writer methods for Surf configuration. 
 	* [URF-16](https://globalmentor.atlassian.net/browse/URF-16): Implemented reader methods for Surf configuration. 

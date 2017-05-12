@@ -17,6 +17,8 @@
 package io.urf.apache.commons.configuration2.surf;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import javax.annotation.*;
 
@@ -24,7 +26,10 @@ import org.apache.commons.configuration2.BaseHierarchicalConfiguration;
 import org.apache.commons.configuration2.FileBasedConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 
+import com.globalmentor.java.Conditions;
+
 import io.urf.surf.parser.*;
+import io.urf.surf.serializer.SurfSerializer;
 
 import static java.util.Objects.*;
 
@@ -40,37 +45,64 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 	@Override
 	public void read(@Nonnull Reader in) throws ConfigurationException, IOException {
-		final BufferedReader bufferedIn = new BufferedReader(requireNonNull(in));
 
-		final Object surfDocument = new SurfParser().parse(bufferedIn).orElse(null);
+		try (final BufferedReader bufferedIn = new BufferedReader(requireNonNull(in))) {
+			final Object surfDocument = new SurfParser().parse(bufferedIn).orElse(null);
 
-		if(surfDocument instanceof SurfObject) {
-			this.surfObject = (SurfObject)surfDocument;
-		} else if(surfDocument == null) {
-			clear(); //TODO implement clearInternal() to make this work, this have to verify if the surfObject is null, if so, it won't be touched, but if surfObject is not null, it'll only clean all the properties inside of it
-		} else {
-			throw new ConfigurationException("The root element of the configuration file must be a SurfObject");
+			if(surfDocument instanceof SurfObject) {
+				this.surfObject = (SurfObject)surfDocument;
+			} else if(surfDocument == null) {
+				this.surfObject = new SurfObject("Config");
+			} else {
+				throw new ConfigurationException("The root element of the configuration file must be a SurfObject.");
+			}
 		}
 
 	}
 
 	@Override
 	public void write(@Nonnull Writer out) throws ConfigurationException, IOException {
-		throw new UnsupportedOperationException("Serializer for SURF not yet implemented.");
+
+		try (final BufferedWriter bufferedOut = new BufferedWriter(requireNonNull(out))) {
+			final SurfSerializer serializer = new SurfSerializer();
+
+			serializer.setFormatted(true);
+
+			bufferedOut.write(serializer.serialize(surfObject));
+			serializer.serialize(Files.newOutputStream(Paths.get(System.getProperty("user.home"), "surfTest.surf")), surfObject);
+		}
+
 	}
 
 	@Override
 	protected Object getPropertyInternal(@Nonnull String key) {
-		return surfObject.getPropertyValue(requireNonNull(key, "The key to be retrieved from the configuration file cannot be <null>")).orElse(null);
+		return surfObject.getPropertyValue(requireNonNull(key, "The key to be retrieved from the configuration file cannot be <null>.")).orElse(null);
+	}
+
+	@Override
+	protected void addPropertyInternal(@Nonnull String key, @Nullable Object obj) {
+		Conditions.checkArgument(key != null, "The key of the property being added cannot be <null>.");
+
+		surfObject.setPropertyValue(key, obj);
+	}
+
+	@Override
+	protected void clearPropertyDirect(String key) {
+		surfObject.setPropertyValue(key, null);
 	}
 
 	@Override
 	protected boolean isEmptyInternal() {
+		return surfObject == null || size() == 0;
+	}
+
+	@Override
+	protected int sizeInternal() {
 		if(surfObject == null) {
-			return true;
+			return 0;
 		}
 
-		return surfObject.getPropertyCount() == 0;
+		return surfObject.getPropertyCount();
 	}
 
 }

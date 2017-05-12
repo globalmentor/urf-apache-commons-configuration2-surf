@@ -22,17 +22,21 @@ import org.apache.commons.configuration2.builder.fluent.*;
 import org.apache.commons.configuration2.ex.*;
 
 import org.junit.*;
+import org.junit.rules.TemporaryFolder;
 
 import com.globalmentor.collections.*;
+
+import io.urf.surf.parser.SurfObject;
+import io.urf.surf.parser.SurfParser;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.*;
 import java.nio.file.*;
 import java.time.*;
-
-import javax.annotation.*;
 
 /**
  * Tests to see if the {@link SurfConfiguration} is working correctly.
@@ -41,17 +45,80 @@ import javax.annotation.*;
  */
 public class SurfConfigurationTest {
 
+	@Rule
+	public final TemporaryFolder tempFolder = new TemporaryFolder();
+
+	/**
+	 * Test whether the configuration is working with a configuration file.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 * @throws IOException if an I/O error occur.
+	 * @throws URISyntaxException if there's an error while trying to get an URI.
+	 */
+	@Test
+	public void testWriteSurfConfiguration() throws ConfigurationException, IOException, URISyntaxException {
+		final File configFile = tempFolder.newFile("configuration_file.surf");
+
+		final FileBasedConfigurationBuilder<SurfConfiguration> configBuilder = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(configFile));
+
+		final SurfConfiguration config = (SurfConfiguration)configBuilder.getConfiguration();
+
+		assertThat(config.isEmpty(), is(true));
+
+		config.addProperty("name", "Jane Doe");
+		config.addProperty("account", "jane_doe@example.com");
+
+		configBuilder.save();
+
+		SurfObject surfDocument = (SurfObject)new SurfParser().parse(Files.newBufferedReader(configFile.toPath())).get();
+
+		assertThat(surfDocument, instanceOf(SurfObject.class));
+
+		assertThat(surfDocument.getPropertyCount(), equalTo(2));
+
+		assertThat(surfDocument.getPropertyValue("name").get(), equalTo("Jane Doe"));
+		assertThat(surfDocument.getPropertyValue("account").get(), equalTo("jane_doe@example.com"));
+	}
+
+	/**
+	 * Test whether an empty configuration is working with a configuration file.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 * @throws IOException if an I/O error occur.
+	 * @throws URISyntaxException if there's an error while trying to get an URI.
+	 */
+	@Test
+	public void testWriteEmptySurfConfiguration() throws ConfigurationException, IOException, URISyntaxException {
+		final File configFile = tempFolder.newFile("configuration_file.surf");
+
+		final FileBasedConfigurationBuilder<SurfConfiguration> configBuilder = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(configFile));
+
+		final SurfConfiguration config = (SurfConfiguration)configBuilder.getConfiguration();
+
+		assertThat(config.isEmpty(), is(true));
+
+		configBuilder.save();
+
+		SurfObject surfDocument = (SurfObject)new SurfParser().parse(Files.newBufferedReader(configFile.toPath())).get();
+
+		assertThat(surfDocument, instanceOf(SurfObject.class));
+
+		assertThat(surfDocument.getPropertyCount(), equalTo(0));
+	}
+
 	/**
 	 * Test whether the configuration is working with an empty file.
 	 * 
 	 * @throws ConfigurationException if any error occur while configuring the file.
-	 * @throws URISyntaxException if there's an error while trying to get the URI of the configuration file.
 	 */
 	@Test
-	public void testEmptySurfFile() throws ConfigurationException, URISyntaxException {
-		final URL configPath = this.getClass().getResource("empty_file.surf");
+	public void testReadEmptySurfFile() throws ConfigurationException {
+		final File configFile = new File(this.getClass().getResource("empty_file.surf").getFile());
 
-		final Configuration config = createConfiguration(configPath);
+		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
 
 		assertThat(config.isEmpty(), is(true));
 	}
@@ -60,13 +127,13 @@ public class SurfConfigurationTest {
 	 * Test whether the configuration is working with an empty configuration file.
 	 * 
 	 * @throws ConfigurationException if any error occur while configuring the file.
-	 * @throws URISyntaxException if there's an error while trying to get the URI of the configuration file.
 	 */
 	@Test
-	public void testEmptySurfConfiguration() throws ConfigurationException, URISyntaxException {
-		final URL configPath = this.getClass().getResource("empty_configuration_file.surf");
+	public void testReadEmptySurfConfiguration() throws ConfigurationException {
+		final File configFile = new File(this.getClass().getResource("empty_configuration_file.surf").getFile());
 
-		final Configuration config = createConfiguration(configPath);
+		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
 
 		assertThat(config.isEmpty(), is(true));
 	}
@@ -75,13 +142,13 @@ public class SurfConfigurationTest {
 	 * Test whether the configuration is working with properties of the type {@link String}.
 	 * 
 	 * @throws ConfigurationException if any error occur while configuring the file.
-	 * @throws URISyntaxException if there's an error while trying to get the URI of the configuration file.
 	 */
 	@Test
-	public void testSurfConfigurationWithStringProperties() throws ConfigurationException, URISyntaxException {
-		final URL configPath = this.getClass().getResource("configuration_file_strings.surf");
+	public void testReadSurfConfigurationWithStringProperties() throws ConfigurationException {
+		final File configFile = new File(this.getClass().getResource("configuration_file_strings.surf").getFile());
 
-		final Configuration config = createConfiguration(configPath);
+		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
 
 		assertThat(config.isEmpty(), is(false));
 
@@ -93,26 +160,27 @@ public class SurfConfigurationTest {
 	 * Test whether the configuration is throwing an exception if the resource isn't a valid configuration file.
 	 * 
 	 * @throws ConfigurationException if any error occur while configuring the file.
-	 * @throws URISyntaxException if there's an error while trying to get the URI of the configuration file.
 	 */
-	@Test(expected=ConfigurationException.class)
-	public void testInvalidSurfConfiguration() throws ConfigurationException, URISyntaxException {
-		final URL configPath = this.getClass().getResource("invalid_configuration_file.surf");
+	@Test(expected = ConfigurationException.class)
+	public void testReadInvalidSurfConfiguration() throws ConfigurationException {
+		final File configFile = new File(this.getClass().getResource("invalid_configuration_file.surf").getFile());
 
-		createConfiguration(configPath);
+		new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class).configure(new Parameters().fileBased().setFile(configFile))
+				.getConfiguration();
 	}
 
 	/**
 	 * Test whether the configuration is working with properties of every type when the root object has no type.
 	 * 
 	 * @throws ConfigurationException if any error occur while configuring the file.
-	 * @throws URISyntaxException if there's an error while trying to get the URI of the configuration file.
+	 * @throws URISyntaxException if there's an error while trying to get an URI.
 	 */
 	@Test
-	public void testSurfConfigurationWithoutType() throws ConfigurationException, URISyntaxException {
-		final URL configPath = this.getClass().getResource("configuration_file_no_type.surf");
+	public void testReadSurfConfigurationWithoutType() throws ConfigurationException, URISyntaxException {
+		final File configFile = new File(this.getClass().getResource("configuration_file_no_type.surf").getFile());
 
-		final Configuration config = createConfiguration(configPath);
+		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
 
 		assertThat(config.isEmpty(), is(false));
 
@@ -132,13 +200,14 @@ public class SurfConfigurationTest {
 	 * Test whether the configuration is working with properties of every type.
 	 * 
 	 * @throws ConfigurationException if any error occur while configuring the file.
-	 * @throws URISyntaxException if there's an error while trying to get the URI of the configuration file.
+	 * @throws URISyntaxException if there's an error while trying to get an URI.
 	 */
 	@Test
-	public void testSurfConfiguration() throws ConfigurationException, URISyntaxException {
-		final URL configPath = this.getClass().getResource("configuration_file.surf");
+	public void testReadSurfConfiguration() throws ConfigurationException, URISyntaxException {
+		final File configFile = new File(this.getClass().getResource("configuration_file.surf").getFile());
 
-		final Configuration config = createConfiguration(configPath);
+		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
 
 		assertThat(config.isEmpty(), is(false));
 
@@ -152,19 +221,6 @@ public class SurfConfigurationTest {
 		assertThat(config.getProperty("salt"), equalTo(new byte[] {102, 111, 111, 98, 97, 114}));
 		assertThat(config.getProperty("joined"), equalTo(LocalDate.parse("2016-01-23")));
 		assertThat(config.getProperty("credits"), equalTo(123));
-	}
-
-	/**
-	 * Method to help with the creation of the {@link SurfConfiguration}.
-	 * 
-	 * @param configURL The {@link Path} of the file that will be used to store the configurations.
-	 * 
-	 * @return The {@link SurfConfiguration} ready to be used.
-	 * @throws ConfigurationException if any error occur while configuring the file.
-	 */
-	private Configuration createConfiguration(@Nonnull final URL configURL) throws ConfigurationException {
-		return new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class).configure(new Parameters().fileBased().setURL(configURL))
-				.getConfiguration();
 	}
 
 }

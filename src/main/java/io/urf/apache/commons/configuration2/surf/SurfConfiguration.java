@@ -52,10 +52,8 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 			if(surfDocument instanceof SurfObject) {
 				this.surfObject = (SurfObject)surfDocument;
-			} else if(surfDocument == null) {
-				this.surfObject = new SurfObject(DEFAULT_ROOT_NAME);
 			} else {
-				throw new ConfigurationException("The element on the file is not a valid SURF configuration file.");
+				this.surfObject = new SurfObject(DEFAULT_ROOT_NAME);
 			}
 		}
 

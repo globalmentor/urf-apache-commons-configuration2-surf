@@ -17,8 +17,6 @@
 package io.urf.apache.commons.configuration2.surf;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 import javax.annotation.*;
 
@@ -40,6 +38,9 @@ import static java.util.Objects.*;
  */
 public class SurfConfiguration extends BaseHierarchicalConfiguration implements FileBasedConfiguration {
 
+	/** Constant for the default root element name. */
+	private static final String DEFAULT_ROOT_NAME = "Config";
+
 	/** The root object where the properties will be added. */
 	private SurfObject surfObject;
 
@@ -52,9 +53,9 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 			if(surfDocument instanceof SurfObject) {
 				this.surfObject = (SurfObject)surfDocument;
 			} else if(surfDocument == null) {
-				this.surfObject = new SurfObject("Config");
+				this.surfObject = new SurfObject(DEFAULT_ROOT_NAME);
 			} else {
-				throw new ConfigurationException("The root element of the configuration file must be a SurfObject.");
+				throw new ConfigurationException("The element on the file is not a valid SURF configuration file.");
 			}
 		}
 
@@ -69,7 +70,6 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 			serializer.setFormatted(true);
 
 			bufferedOut.write(serializer.serialize(surfObject));
-			serializer.serialize(Files.newOutputStream(Paths.get(System.getProperty("user.home"), "surfTest.surf")), surfObject);
 		}
 
 	}

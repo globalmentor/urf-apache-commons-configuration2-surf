@@ -57,7 +57,7 @@ public class SurfConfigurationTest {
 	 */
 	@Test
 	public void testWriteSurfConfiguration() throws ConfigurationException, IOException, URISyntaxException {
-		final File configFile = tempFolder.newFile("configuration_file.surf");
+		final File configFile = tempFolder.newFile("serializer_configuration_file.surf");
 
 		final FileBasedConfigurationBuilder<SurfConfiguration> configBuilder = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
 				.configure(new Parameters().fileBased().setFile(configFile));
@@ -88,7 +88,7 @@ public class SurfConfigurationTest {
 	 */
 	@Test
 	public void testWriteEmptySurfConfiguration() throws ConfigurationException, IOException, URISyntaxException {
-		final File configFile = tempFolder.newFile("configuration_file.surf");
+		final File configFile = tempFolder.newFile("serializer_empty_configuration_file.surf");
 
 		final FileBasedConfigurationBuilder<SurfConfiguration> configBuilder = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
 				.configure(new Parameters().fileBased().setFile(configFile));
@@ -102,6 +102,8 @@ public class SurfConfigurationTest {
 		SurfObject surfDocument = (SurfObject)new SurfParser().parse(Files.newBufferedReader(configFile.toPath())).get();
 
 		assertThat(surfDocument.getPropertyCount(), equalTo(0));
+
+		assertThat(surfDocument.getTypeName().get(), equalTo("Config"));
 	}
 
 	/**

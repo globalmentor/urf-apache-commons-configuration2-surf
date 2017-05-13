@@ -23,6 +23,7 @@ import javax.annotation.*;
 import org.apache.commons.configuration2.BaseHierarchicalConfiguration;
 import org.apache.commons.configuration2.FileBasedConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.commons.configuration2.io.FileHandler;
 
 import com.globalmentor.java.Conditions;
 
@@ -34,6 +35,10 @@ import static java.util.Objects.*;
 /**
  * An implementation for a {@link FileBasedConfiguration} that uses a SURF file to store information.
  * 
+ * <p>
+ * If a SURF configuration file is created by an instance of this class, the root {@link SurfObject} will always have the type name <code>Config</code>.
+ * </p>
+ * 
  * @author Magno N A Cruz
  */
 public class SurfConfiguration extends BaseHierarchicalConfiguration implements FileBasedConfiguration {
@@ -44,16 +49,24 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	/** The root object where the properties will be added. */
 	private SurfObject surfObject;
 
+	/**
+	 * {@inheritDoc} If an empty or non-existing file is provided to the {@link FileHandler}, then we create the root object using {@value #DEFAULT_ROOT_NAME} as
+	 * the type name.
+	 * 
+	 * @throws ConfigurationException if the root element is not a {@link SurfObject}.
+	 */
 	@Override
 	public void read(@Nonnull Reader in) throws ConfigurationException, IOException {
 
 		try (final BufferedReader bufferedIn = new BufferedReader(requireNonNull(in))) {
 			final Object surfDocument = new SurfParser().parse(bufferedIn).orElse(null);
 
-			if(surfDocument instanceof SurfObject) {
+			if(surfDocument instanceof SurfObject && ((SurfObject)surfDocument).getPropertyCount() != 0) {
 				this.surfObject = (SurfObject)surfDocument;
-			} else {
+			} else if(surfDocument == null || ((SurfObject)surfDocument).getPropertyCount() == 0) {
 				this.surfObject = new SurfObject(DEFAULT_ROOT_NAME);
+			} else {
+				throw new ConfigurationException("The element on the file is not a valid SURF configuration file.");
 			}
 		}
 

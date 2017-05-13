@@ -25,6 +25,7 @@ import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 
 import com.globalmentor.collections.*;
+import com.globalmentor.java.CodePointCharacter;
 
 import io.urf.surf.parser.SurfObject;
 import io.urf.surf.parser.SurfParser;
@@ -103,7 +104,7 @@ public class SurfConfigurationTest {
 
 		assertThat(surfDocument.getPropertyCount(), equalTo(0));
 
-		assertThat(surfDocument.getTypeName().get(), equalTo("Config"));
+		assertThat(surfDocument.getTypeName().get(), equalTo("Configuration"));
 	}
 
 	/**
@@ -134,6 +135,19 @@ public class SurfConfigurationTest {
 				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
 
 		assertThat(config.isEmpty(), is(true));
+	}
+
+	/**
+	 * Test whether the configuration is throwing an exception if a link for a non-existing file is provided to it.
+	 * 
+	 * @throws ConfigurationException if a non-existing file is provided to the {@link ConfigurationBuilder}, this is what we expect.
+	 */
+	@Test(expected = ConfigurationException.class)
+	public void testReadNonExistentSurfFile() throws ConfigurationException {
+		final String configPath = Paths.get(tempFolder.getRoot().getPath()).resolve("non_existing_configuration_file.surf").toString();
+
+		new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class).configure(new Parameters().fileBased().setPath(configPath))
+				.getConfiguration();
 	}
 
 	/**
@@ -184,7 +198,7 @@ public class SurfConfigurationTest {
 
 		//TODO add UUID
 		assertThat(config.getProperty("authenticated"), is(true));
-		assertThat(config.getProperty("sort"), equalTo('d'));
+		assertThat(config.getProperty("sort"), equalTo(CodePointCharacter.of('d')));
 		assertThat(config.getProperty("name"), equalTo("Jane Doe"));
 		assertThat(config.getProperty("account"), equalTo("jane_doe@example.com"));
 		assertThat(config.getProperty("aliases"), equalTo(Collections.createHashSet("jdoe", "janed")));
@@ -211,7 +225,7 @@ public class SurfConfigurationTest {
 
 		//TODO add UUID
 		assertThat(config.getProperty("authenticated"), is(true));
-		assertThat(config.getProperty("sort"), equalTo('d'));
+		assertThat(config.getProperty("sort"), equalTo(CodePointCharacter.of('d')));
 		assertThat(config.getProperty("name"), equalTo("Jane Doe"));
 		assertThat(config.getProperty("account"), equalTo("jane_doe@example.com"));
 		assertThat(config.getProperty("aliases"), equalTo(Collections.createHashSet("jdoe", "janed")));

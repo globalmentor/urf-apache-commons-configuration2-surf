@@ -36,24 +36,43 @@ import static java.util.Objects.*;
  * An implementation for a {@link FileBasedConfiguration} that uses a SURF file to store information.
  * 
  * <p>
- * If a SURF configuration file is created by an instance of this class, the root {@link SurfObject} will always have the type name <code>Config</code>.
+ * If a SURF configuration file is created by an instance of this class, it will be composed by a root {@link SurfObject} with the type name defined as
+ * <code>"Configuration"</code>, and every property added to this {@link SurfConfiguration} instance will be a child of this {@link SurfObject}.
+ * </p>
+ * 
+ * i.e.,
+ * 
+ * <pre>
+ * *Configuration:
+ *   property1 = value1
+ *   property2 = value2
+ *   property3 = value3
+ * ;
+ * </pre>
+ * 
+ * <p>
+ * The SURF document serialized will always be formatter. See {@link SurfSerializer#setFormatted(boolean)}.
  * </p>
  * 
  * @author Magno N A Cruz
  */
 public class SurfConfiguration extends BaseHierarchicalConfiguration implements FileBasedConfiguration {
 
-	/** Constant for the default root element name. */
-	private static final String DEFAULT_ROOT_NAME = "Config";
+	/** Constant for the default root object type name. */
+	private static final String DEFAULT_ROOT_NAME = "Configuration";
 
 	/** The root object where the properties will be added. */
-	private SurfObject surfObject;
+	private SurfObject surfDocument;
 
 	/**
-	 * {@inheritDoc} If an empty or non-existing file is provided to the {@link FileHandler}, then we create the root object using {@value #DEFAULT_ROOT_NAME} as
-	 * the type name.
+	 * {@inheritDoc}
 	 * 
-	 * @throws ConfigurationException if the root element is not a {@link SurfObject}.
+	 * <p>
+	 * If an empty file is provided to the {@link FileHandler}, then we create the root object using {@value #DEFAULT_ROOT_NAME} as the type name.
+	 * </p>
+	 * 
+	 * @throws ConfigurationException if the root element is not an instance of {@link SurfObject} or if the {@link Reader} provided refers to a non-existing
+	 *           file.
 	 */
 	@Override
 	public void read(@Nonnull Reader in) throws ConfigurationException, IOException {
@@ -62,9 +81,9 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 			final Object surfDocument = new SurfParser().parse(bufferedIn).orElse(null);
 
 			if(surfDocument instanceof SurfObject && ((SurfObject)surfDocument).getPropertyCount() != 0) {
-				this.surfObject = (SurfObject)surfDocument;
+				this.surfDocument = (SurfObject)surfDocument;
 			} else if(surfDocument == null || ((SurfObject)surfDocument).getPropertyCount() == 0) {
-				this.surfObject = new SurfObject(DEFAULT_ROOT_NAME);
+				this.surfDocument = new SurfObject(DEFAULT_ROOT_NAME);
 			} else {
 				throw new ConfigurationException("The element on the file is not a valid SURF configuration file.");
 			}
@@ -80,40 +99,49 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 			serializer.setFormatted(true);
 
-			bufferedOut.write(serializer.serialize(surfObject));
+			bufferedOut.write(serializer.serialize(surfDocument));
 		}
 
 	}
 
 	@Override
 	protected Object getPropertyInternal(@Nonnull String key) {
-		return surfObject.getPropertyValue(requireNonNull(key, "The key to be retrieved from the configuration file cannot be <null>.")).orElse(null);
+		return surfDocument.getPropertyValue(requireNonNull(key, "The key to be retrieved from the configuration file cannot be <null>.")).orElse(null);
 	}
 
 	@Override
 	protected void addPropertyInternal(@Nonnull String key, @Nullable Object obj) {
 		Conditions.checkArgument(key != null, "The key of the property being added cannot be <null>.");
 
-		surfObject.setPropertyValue(key, obj);
+		surfDocument.setPropertyValue(key, obj);
 	}
 
 	@Override
 	protected void clearPropertyDirect(String key) {
-		surfObject.setPropertyValue(key, null);
+		surfDocument.setPropertyValue(key, null);
 	}
 
 	@Override
 	protected boolean isEmptyInternal() {
-		return surfObject == null || size() == 0;
+		return surfDocument == null || size() == 0;
 	}
 
 	@Override
 	protected int sizeInternal() {
-		if(surfObject == null) {
+		if(surfDocument == null) {
 			return 0;
 		}
 
-		return surfObject.getPropertyCount();
+		return surfDocument.getPropertyCount();
+	}
+
+	/**
+	 * Returns the SURF document of this configuration.
+	 *
+	 * @return The SURF document this configuration or <code>null</code> if it wasn't loaded from a file.
+	 */
+	public SurfObject getSurfDocument() {
+		return this.surfDocument;
 	}
 
 }

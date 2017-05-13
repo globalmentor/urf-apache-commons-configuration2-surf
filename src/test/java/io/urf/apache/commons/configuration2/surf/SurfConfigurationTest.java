@@ -73,8 +73,6 @@ public class SurfConfigurationTest {
 
 		SurfObject surfDocument = (SurfObject)new SurfParser().parse(Files.newBufferedReader(configFile.toPath())).get();
 
-		assertThat(surfDocument, instanceOf(SurfObject.class));
-
 		assertThat(surfDocument.getPropertyCount(), equalTo(2));
 
 		assertThat(surfDocument.getPropertyValue("name").get(), equalTo("Jane Doe"));
@@ -102,8 +100,6 @@ public class SurfConfigurationTest {
 		configBuilder.save();
 
 		SurfObject surfDocument = (SurfObject)new SurfParser().parse(Files.newBufferedReader(configFile.toPath())).get();
-
-		assertThat(surfDocument, instanceOf(SurfObject.class));
 
 		assertThat(surfDocument.getPropertyCount(), equalTo(0));
 	}

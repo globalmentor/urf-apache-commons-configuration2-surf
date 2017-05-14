@@ -1,0 +1,11 @@
+*Config:
+	authenticated = true
+	sort = 'd'
+	name = "Jane Doe"
+	account = "jane_doe@example.com"
+	aliases = ("jdoe", "janed")
+	homePage = <http://www.example.com/jdoe/>
+	salt = %Zm9vYmFy
+	joined = @2016-01-23
+	credits = 123
+;

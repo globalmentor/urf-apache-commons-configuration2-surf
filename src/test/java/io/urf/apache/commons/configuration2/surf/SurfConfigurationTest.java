@@ -235,4 +235,66 @@ public class SurfConfigurationTest {
 		assertThat(config.getProperty("credits"), equalTo(123));
 	}
 
+	/**
+	 * Test whether the configuration is returning a property in a correct type, when it's asked.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 * @throws URISyntaxException if there's an error while trying to get an URI.
+	 */
+	@Test
+	public void testGetSpecificSurfProperty() throws ConfigurationException, URISyntaxException {
+		final File configFile = new File(this.getClass().getResource("configuration_file.surf").getFile());
+
+		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
+
+		assertThat(config.isEmpty(), is(false));
+
+		//TODO add UUID
+		assertThat(config.get(boolean.class, "authenticated"), is(true));
+		assertThat(config.get(CodePointCharacter.class, "sort"), equalTo(CodePointCharacter.of('d')));
+		assertThat(config.get(String.class, "name"), equalTo("Jane Doe"));
+		//assertThat(config.get(HashSet.class, "aliases"), equalTo(Collections.createHashSet("jdoe", "janed"))); HashSet.class isn't compatible to this property value, why?
+		assertThat(config.get(URI.class, "homePage"), equalTo(new URI("http://www.example.com/jdoe/")));
+		assertThat(config.get(byte[].class, "salt"), equalTo(new byte[] {102, 111, 111, 98, 97, 114}));
+		assertThat(config.get(LocalDate.class, "joined"), equalTo(LocalDate.parse("2016-01-23")));
+		assertThat(config.get(int.class, "credits"), equalTo(123));
+	}
+
+	/**
+	 * Test whether the configuration is returning a property in a different, compatible type, when it's asked.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 * @throws URISyntaxException if there's an error while trying to get an URI.
+	 */
+	@Test
+	public void testGetDifferentSpecificSurfProperty() throws ConfigurationException, URISyntaxException {
+		final File configFile = new File(this.getClass().getResource("configuration_file.surf").getFile());
+
+		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
+
+		assertThat(config.isEmpty(), is(false));
+
+		assertThat(config.get(String.class, "joined"), equalTo("2016-01-23"));
+	}
+
+	/**
+	 * Test whether the configuration is returning a property in a different, non-compatible type, when it's asked.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 * @throws URISyntaxException if there's an error while trying to get an URI.
+	 */
+	@Test(expected = ConversionException.class)
+	public void testGetDifferentNonCompatibleSpecificSurfProperty() throws ConfigurationException, URISyntaxException {
+		final File configFile = new File(this.getClass().getResource("configuration_file.surf").getFile());
+
+		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
+
+		assertThat(config.isEmpty(), is(false));
+
+		assertThat(config.get(Instant.class, "joined"), equalTo("2016-01-23"));
+	}
+
 }

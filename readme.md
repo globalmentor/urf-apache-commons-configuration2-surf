@@ -13,5 +13,6 @@ Issues tracked by [JIRA](https://globalmentor.atlassian.net/projects/URF/).
 ## Changelog
 
 - 1.0.0: 
-	* [URF-18](https://globalmentor.atlassian.net/browse/URF-16): Implemented writer methods for Surf configuration. 
-	* [URF-16](https://globalmentor.atlassian.net/browse/URF-16): Implemented reader methods for Surf configuration. 
+	* [URF-19](https://globalmentor.atlassian.net/browse/URF-19): Added unit tests to make sure that `SurfConfiguration` is able to return a property in a specific type. 
+	* [URF-18](https://globalmentor.atlassian.net/browse/URF-18): Implemented writer methods for SURF configuration. 
+	* [URF-16](https://globalmentor.atlassian.net/browse/URF-16): Implemented reader methods for SURF configuration. 

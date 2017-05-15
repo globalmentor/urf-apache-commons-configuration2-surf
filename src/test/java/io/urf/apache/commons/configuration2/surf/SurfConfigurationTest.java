@@ -242,7 +242,7 @@ public class SurfConfigurationTest {
 	 * @throws URISyntaxException if there's an error while trying to get an URI.
 	 */
 	@Test
-	public void testGetSpecificSurfProperty() throws ConfigurationException, URISyntaxException {
+	public void testGetSurfPropertyInCorrectType() throws ConfigurationException, URISyntaxException {
 		final File configFile = new File(this.getClass().getResource("configuration_file.surf").getFile());
 
 		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
@@ -268,7 +268,7 @@ public class SurfConfigurationTest {
 	 * @throws URISyntaxException if there's an error while trying to get an URI.
 	 */
 	@Test
-	public void testGetDifferentSpecificSurfProperty() throws ConfigurationException, URISyntaxException {
+	public void testGetSurfPropertyInCompatibleType() throws ConfigurationException, URISyntaxException {
 		final File configFile = new File(this.getClass().getResource("configuration_file.surf").getFile());
 
 		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
@@ -286,7 +286,7 @@ public class SurfConfigurationTest {
 	 * @throws URISyntaxException if there's an error while trying to get an URI.
 	 */
 	@Test(expected = ConversionException.class)
-	public void testGetDifferentNonCompatibleSpecificSurfProperty() throws ConfigurationException, URISyntaxException {
+	public void testGetSurfPropertyInNonCompatibleType() throws ConfigurationException, URISyntaxException {
 		final File configFile = new File(this.getClass().getResource("configuration_file.surf").getFile());
 
 		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)

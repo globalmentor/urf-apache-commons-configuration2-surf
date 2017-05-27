@@ -38,6 +38,9 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.file.*;
 import java.time.*;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Tests to see if the {@link SurfConfiguration} is working correctly.
@@ -58,7 +61,7 @@ public class SurfConfigurationTest {
 	 */
 	@Test
 	public void testWriteSurfConfiguration() throws ConfigurationException, IOException, URISyntaxException {
-		final File configFile = tempFolder.newFile("serializer_configuration_file.surf");
+		final File configFile = tempFolder.newFile("serializer-configuration-file.surf");
 
 		final FileBasedConfigurationBuilder<SurfConfiguration> configBuilder = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
 				.configure(new Parameters().fileBased().setFile(configFile));
@@ -74,7 +77,7 @@ public class SurfConfigurationTest {
 
 		SurfObject surfDocument = (SurfObject)new SurfParser().parse(Files.newBufferedReader(configFile.toPath())).get();
 
-		assertThat(surfDocument.getPropertyCount(), equalTo(2));
+		assertThat(config.size(), equalTo(2));
 
 		assertThat(surfDocument.getPropertyValue("name").get(), equalTo("Jane Doe"));
 		assertThat(surfDocument.getPropertyValue("account").get(), equalTo("jane_doe@example.com"));
@@ -89,7 +92,7 @@ public class SurfConfigurationTest {
 	 */
 	@Test
 	public void testWriteEmptySurfConfiguration() throws ConfigurationException, IOException, URISyntaxException {
-		final File configFile = tempFolder.newFile("serializer_empty_configuration_file.surf");
+		final File configFile = tempFolder.newFile("serializer-empty-configuration-file.surf");
 
 		final FileBasedConfigurationBuilder<SurfConfiguration> configBuilder = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
 				.configure(new Parameters().fileBased().setFile(configFile));
@@ -113,8 +116,43 @@ public class SurfConfigurationTest {
 	 * @throws ConfigurationException if any error occur while configuring the file.
 	 */
 	@Test
-	public void testReadEmptySurfFile() throws ConfigurationException {
-		final File configFile = new File(this.getClass().getResource("empty_file.surf").getFile());
+	public void testReadEmptySurfFileWithTypeName() throws ConfigurationException {
+		final File configFile = new File(this.getClass().getResource("empty-file.surf").getFile());
+
+		final SurfConfiguration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
+
+		assertThat(config.isEmpty(), is(true));
+
+		assertThat(((SurfObject)config.getSurfDocument()).getTypeName().get(), equalTo("Configuration"));
+	}
+
+	/**
+	 * Test whether the configuration is working with an empty file.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 */
+	@Test
+	public void testReadEmptySurfFileWithoutTypeName() throws ConfigurationException {
+		final File configFile = new File(this.getClass().getResource("empty-configuration-file.surf").getFile());
+
+		final SurfConfiguration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
+
+		assertThat(config.isEmpty(), is(true));
+
+		assertThat(((SurfObject)config.getSurfDocument()).getTypeName(), equalTo(Optional.empty()));
+		assertThat(((SurfObject)config.getSurfDocument()).getIri(), equalTo(Optional.empty()));
+	}
+
+	/**
+	 * Test whether the configuration is working with an empty configuration file.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 */
+	@Test
+	public void testReadEmptySurfConfiguration() throws ConfigurationException {
+		final File configFile = new File(this.getClass().getResource("empty-configuration-file.surf").getFile());
 
 		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
 				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
@@ -128,13 +166,15 @@ public class SurfConfigurationTest {
 	 * @throws ConfigurationException if any error occur while configuring the file.
 	 */
 	@Test
-	public void testReadEmptySurfConfiguration() throws ConfigurationException {
-		final File configFile = new File(this.getClass().getResource("empty_configuration_file.surf").getFile());
+	public void testReadEmptySurfConfigurationFromMap() throws ConfigurationException {
+		final File configFile = new File(this.getClass().getResource("map-based-empty-configuration-file.surf").getFile());
 
 		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
 				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
 
 		assertThat(config.isEmpty(), is(true));
+
+		assertThat(((SurfConfiguration)config).getSurfDocument(), instanceOf(Map.class));
 	}
 
 	/**
@@ -144,7 +184,7 @@ public class SurfConfigurationTest {
 	 */
 	@Test(expected = ConfigurationException.class)
 	public void testReadNonExistentSurfFile() throws ConfigurationException {
-		final String configPath = Paths.get(tempFolder.getRoot().getPath()).resolve("non_existing_configuration_file.surf").toString();
+		final String configPath = Paths.get(tempFolder.getRoot().getPath()).resolve("non-existing-configuration-file.surf").toString();
 
 		new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class).configure(new Parameters().fileBased().setPath(configPath))
 				.getConfiguration();
@@ -157,7 +197,7 @@ public class SurfConfigurationTest {
 	 */
 	@Test
 	public void testReadSurfConfigurationWithStringProperties() throws ConfigurationException {
-		final File configFile = new File(this.getClass().getResource("configuration_file_strings.surf").getFile());
+		final File configFile = new File(this.getClass().getResource("configuration-file-strings.surf").getFile());
 
 		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
 				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
@@ -175,7 +215,7 @@ public class SurfConfigurationTest {
 	 */
 	@Test(expected = ConfigurationException.class)
 	public void testReadInvalidSurfConfiguration() throws ConfigurationException {
-		final File configFile = new File(this.getClass().getResource("invalid_configuration_file.surf").getFile());
+		final File configFile = new File(this.getClass().getResource("invalid-configuration-file.surf").getFile());
 
 		new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class).configure(new Parameters().fileBased().setFile(configFile))
 				.getConfiguration();
@@ -189,18 +229,18 @@ public class SurfConfigurationTest {
 	 */
 	@Test
 	public void testReadSurfConfigurationWithoutType() throws ConfigurationException, URISyntaxException {
-		final File configFile = new File(this.getClass().getResource("configuration_file_no_type.surf").getFile());
+		final File configFile = new File(this.getClass().getResource("configuration-file-without-type.surf").getFile());
 
 		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
 				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
 
 		assertThat(config.isEmpty(), is(false));
 
-		//TODO add UUID
 		assertThat(config.getProperty("authenticated"), is(true));
 		assertThat(config.getProperty("sort"), equalTo(CodePointCharacter.of('d')));
 		assertThat(config.getProperty("name"), equalTo("Jane Doe"));
 		assertThat(config.getProperty("account"), equalTo("jane_doe@example.com"));
+		assertThat(config.getProperty("id"), equalTo(UUID.fromString("bb8e7dbe-f0b4-4d94-a1cf-46ed0e920832")));
 		assertThat(config.getProperty("aliases"), equalTo(Collections.createHashSet("jdoe", "janed")));
 		assertThat(config.getProperty("homePage"), equalTo(new URI("http://www.example.com/jdoe/")));
 		assertThat(config.getProperty("salt"), equalTo(new byte[] {102, 111, 111, 98, 97, 114}));
@@ -216,23 +256,176 @@ public class SurfConfigurationTest {
 	 */
 	@Test
 	public void testReadSurfConfiguration() throws ConfigurationException, URISyntaxException {
-		final File configFile = new File(this.getClass().getResource("configuration_file.surf").getFile());
+		final File configFile = new File(this.getClass().getResource("configuration-file.surf").getFile());
 
 		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
 				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
 
 		assertThat(config.isEmpty(), is(false));
 
-		//TODO add UUID
 		assertThat(config.getProperty("authenticated"), is(true));
 		assertThat(config.getProperty("sort"), equalTo(CodePointCharacter.of('d')));
 		assertThat(config.getProperty("name"), equalTo("Jane Doe"));
 		assertThat(config.getProperty("account"), equalTo("jane_doe@example.com"));
+		assertThat(config.getProperty("id"), equalTo(UUID.fromString("bb8e7dbe-f0b4-4d94-a1cf-46ed0e920832")));
 		assertThat(config.getProperty("aliases"), equalTo(Collections.createHashSet("jdoe", "janed")));
 		assertThat(config.getProperty("homePage"), equalTo(new URI("http://www.example.com/jdoe/")));
 		assertThat(config.getProperty("salt"), equalTo(new byte[] {102, 111, 111, 98, 97, 114}));
 		assertThat(config.getProperty("joined"), equalTo(LocalDate.parse("2016-01-23")));
 		assertThat(config.getProperty("credits"), equalTo(123));
+
+		assertThat(config.size(), equalTo(11));
+	}
+
+	/**
+	 * Test whether the configuration is working with properties of every type when the root object is a representation of a map.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 * @throws URISyntaxException if there's an error while trying to get an URI.
+	 */
+	@Test
+	public void testReadSurfConfigurationFromMap() throws ConfigurationException, URISyntaxException {
+		final File configFile = new File(this.getClass().getResource("map-based-configuration-file.surf").getFile());
+
+		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
+
+		assertThat(config.isEmpty(), is(false));
+
+		assertThat(config.getProperty("authenticated"), is(true));
+		assertThat(config.getProperty("sort"), equalTo(CodePointCharacter.of('d')));
+		assertThat(config.getProperty("name"), equalTo("Jane Doe"));
+		assertThat(config.getProperty("account"), equalTo("jane_doe@example.com"));
+		assertThat(config.getProperty("id"), equalTo(UUID.fromString("bb8e7dbe-f0b4-4d94-a1cf-46ed0e920832")));
+		assertThat(config.getProperty("aliases"), equalTo(Collections.createHashSet("jdoe", "janed")));
+		assertThat(config.getProperty("homePage"), equalTo(new URI("http://www.example.com/jdoe/")));
+		assertThat(config.getProperty("salt"), equalTo(new byte[] {102, 111, 111, 98, 97, 114}));
+		assertThat(config.getProperty("joined"), equalTo(LocalDate.parse("2016-01-23")));
+		assertThat(config.getProperty("credits"), equalTo(123));
+
+		assertThat(config.size(), equalTo(11));
+	}
+
+	/**
+	 * Test whether the configuration is clearing properties properly.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 * @throws URISyntaxException if there's an error while trying to get an URI.
+	 */
+	@Test
+	public void testSurfConfigurationClearProperty() throws ConfigurationException, URISyntaxException {
+		final File configFile = new File(this.getClass().getResource("configuration-file.surf").getFile());
+
+		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
+
+		assertThat(config.isEmpty(), is(false));
+
+		assertThat(config.getProperty("authenticated"), is(true));
+
+		assertThat(config.size(), equalTo(11));
+
+		config.clearProperty("authenticated");
+
+		assertThat(config.getProperty("authenticated"), equalTo(null));
+
+		assertThat(config.size(), equalTo(10));
+
+		assertThat(config.getProperty("sort"), equalTo(CodePointCharacter.of('d')));
+		assertThat(config.getProperty("name"), equalTo("Jane Doe"));
+		assertThat(config.getProperty("account"), equalTo("jane_doe@example.com"));
+		assertThat(config.getProperty("id"), equalTo(UUID.fromString("bb8e7dbe-f0b4-4d94-a1cf-46ed0e920832")));
+		assertThat(config.getProperty("aliases"), equalTo(Collections.createHashSet("jdoe", "janed")));
+		assertThat(config.getProperty("homePage"), equalTo(new URI("http://www.example.com/jdoe/")));
+		assertThat(config.getProperty("salt"), equalTo(new byte[] {102, 111, 111, 98, 97, 114}));
+		assertThat(config.getProperty("joined"), equalTo(LocalDate.parse("2016-01-23")));
+		assertThat(config.getProperty("credits"), equalTo(123));
+
+		config.clear();
+
+		assertThat(config.isEmpty(), is(true));
+		assertThat(config.size(), equalTo(0));
+	}
+
+	/**
+	 * Test whether {@link SurfConfiguration#getProperty(String)} is working properly based on the hierarchy properties to look for nodes in lower levels.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 * @throws URISyntaxException if there's an error while trying to get an URI.
+	 */
+	@Test
+	public void testReadSurfConfigurationHierarchy() throws ConfigurationException, URISyntaxException {
+		final File configFile = new File(this.getClass().getResource("configuration-file-hierarchy.surf").getFile());
+
+		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
+
+		assertThat(config.isEmpty(), is(false));
+
+		assertThat(config.size(), equalTo(12));
+
+		assertThat(config.getProperty("authenticated"), is(true));
+		assertThat(config.getProperty("sort"), equalTo(CodePointCharacter.of('d')));
+		assertThat(config.getProperty("name.firstName"), equalTo("Jane"));
+		assertThat(config.getProperty("name.lastName"), equalTo("Doe"));
+		assertThat(config.getProperty("account"), equalTo("jane_doe@example.com"));
+		assertThat(config.getProperty("id"), equalTo(UUID.fromString("bb8e7dbe-f0b4-4d94-a1cf-46ed0e920832")));
+		assertThat(config.getProperty("aliases"), equalTo(Collections.createHashSet("jdoe", "janed")));
+		assertThat(config.getProperty("homePage"), equalTo(new URI("http://www.example.com/jdoe/")));
+		assertThat(config.getProperty("salt"), equalTo(new byte[] {102, 111, 111, 98, 97, 114}));
+		assertThat(config.getProperty("joined"), equalTo(LocalDate.parse("2016-01-23")));
+		assertThat(config.getProperty("credits"), equalTo(123));
+	}
+
+	/**
+	 * Test whether the configuration is clearing properties properly with lower levels on the hierarchy.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 * @throws URISyntaxException if there's an error while trying to get an URI.
+	 */
+	@Test
+	public void testSurfConfigurationHierarchyClearProperty() throws ConfigurationException, URISyntaxException {
+		final File configFile = new File(this.getClass().getResource("configuration-file-hierarchy.surf").getFile());
+
+		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
+
+		assertThat(config.isEmpty(), is(false));
+
+		assertThat(config.size(), equalTo(12));
+
+		assertThat(config.getProperty("authenticated"), is(true));
+
+		config.clearProperty("authenticated");
+
+		assertThat(config.getProperty("authenticated"), equalTo(null));
+
+		assertThat(config.size(), equalTo(11));
+
+		assertThat(config.getProperty("sort"), equalTo(CodePointCharacter.of('d')));
+		assertThat(config.getProperty("name.firstName"), equalTo("Jane"));
+		assertThat(config.getProperty("name.lastName"), equalTo("Doe"));
+
+		config.clearProperty("name.lastName");
+
+		assertThat(config.getProperty("name.firstName"), equalTo("Jane"));
+		assertThat(config.getProperty("name.lastName"), equalTo(null));
+
+		assertThat(config.size(), equalTo(10));
+
+		assertThat(config.getProperty("account"), equalTo("jane_doe@example.com"));
+		assertThat(config.getProperty("id"), equalTo(UUID.fromString("bb8e7dbe-f0b4-4d94-a1cf-46ed0e920832")));
+		assertThat(config.getProperty("aliases"), equalTo(Collections.createHashSet("jdoe", "janed")));
+		assertThat(config.getProperty("homePage"), equalTo(new URI("http://www.example.com/jdoe/")));
+		assertThat(config.getProperty("salt"), equalTo(new byte[] {102, 111, 111, 98, 97, 114}));
+		assertThat(config.getProperty("joined"), equalTo(LocalDate.parse("2016-01-23")));
+		assertThat(config.getProperty("credits"), equalTo(123));
+
+		config.clear();
+
+		assertThat(config.isEmpty(), is(true));
+
+		assertThat(config.size(), equalTo(0));
 	}
 
 	/**
@@ -243,17 +436,17 @@ public class SurfConfigurationTest {
 	 */
 	@Test
 	public void testGetSurfPropertyInCorrectType() throws ConfigurationException, URISyntaxException {
-		final File configFile = new File(this.getClass().getResource("configuration_file.surf").getFile());
+		final File configFile = new File(this.getClass().getResource("configuration-file.surf").getFile());
 
 		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
 				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
 
 		assertThat(config.isEmpty(), is(false));
 
-		//TODO add UUID
 		assertThat(config.get(boolean.class, "authenticated"), is(true));
 		assertThat(config.get(CodePointCharacter.class, "sort"), equalTo(CodePointCharacter.of('d')));
 		assertThat(config.get(String.class, "name"), equalTo("Jane Doe"));
+		assertThat(config.getProperty("id"), equalTo(UUID.fromString("bb8e7dbe-f0b4-4d94-a1cf-46ed0e920832")));
 		//assertThat(config.get(HashSet.class, "aliases"), equalTo(Collections.createHashSet("jdoe", "janed"))); HashSet.class isn't compatible to this property value, why?
 		assertThat(config.get(URI.class, "homePage"), equalTo(new URI("http://www.example.com/jdoe/")));
 		assertThat(config.get(byte[].class, "salt"), equalTo(new byte[] {102, 111, 111, 98, 97, 114}));
@@ -269,7 +462,7 @@ public class SurfConfigurationTest {
 	 */
 	@Test
 	public void testGetSurfPropertyInCompatibleType() throws ConfigurationException, URISyntaxException {
-		final File configFile = new File(this.getClass().getResource("configuration_file.surf").getFile());
+		final File configFile = new File(this.getClass().getResource("configuration-file.surf").getFile());
 
 		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
 				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
@@ -287,7 +480,7 @@ public class SurfConfigurationTest {
 	 */
 	@Test(expected = ConversionException.class)
 	public void testGetSurfPropertyInNonCompatibleType() throws ConfigurationException, URISyntaxException {
-		final File configFile = new File(this.getClass().getResource("configuration_file.surf").getFile());
+		final File configFile = new File(this.getClass().getResource("configuration-file.surf").getFile());
 
 		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
 				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();

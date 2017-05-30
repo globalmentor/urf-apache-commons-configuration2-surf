@@ -366,8 +366,15 @@ public class SurfConfigurationTest {
 
 		assertThat(config.getProperty("authenticated"), is(true));
 		assertThat(config.getProperty("sort"), equalTo(CodePointCharacter.of('d')));
+
+		final SurfObject nameObject = new SurfObject();
+		nameObject.setPropertyValue("firstName", "Jane");
+		nameObject.setPropertyValue("lastName", "Doe");
+
+		assertThat(config.getProperty("name"), equalTo(nameObject));
 		assertThat(config.getProperty("name.firstName"), equalTo("Jane"));
 		assertThat(config.getProperty("name.lastName"), equalTo("Doe"));
+
 		assertThat(config.getProperty("account"), equalTo("jane_doe@example.com"));
 		assertThat(config.getProperty("id"), equalTo(UUID.fromString("bb8e7dbe-f0b4-4d94-a1cf-46ed0e920832")));
 		assertThat(config.getProperty("aliases"), equalTo(Collections.createHashSet("jdoe", "janed")));

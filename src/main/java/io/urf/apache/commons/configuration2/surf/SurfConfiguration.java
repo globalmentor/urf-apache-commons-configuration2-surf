@@ -112,12 +112,15 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 				throw new ConfigurationException("The element on the file is not a valid SURF configuration file.");
 			}
 
+			final ImmutableNode rootNode;
+
 			if(surfDocument != null) {
-				getModel().setRootNode(createHierarchy(surfDocument));
+				rootNode = createHierarchy(surfDocument);
 			} else {
-				getModel().setRootNode(createHierarchy(new SurfObject(DEFAULT_ROOT_TYPE_NAME)));
+				rootNode = createHierarchy(new SurfObject(DEFAULT_ROOT_TYPE_NAME));
 			}
 
+			getModel().setRootNode(rootNode);
 		}
 
 	}
@@ -199,6 +202,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	@SuppressWarnings("unchecked")
 	private Object toObject(@Nonnull final Object parentStructure, @Nullable final List<ImmutableNode> childrenNodes) {
 		requireNonNull(parentStructure, "The provided parent data structure object might not be <null>.");
+		requireNonNull(childrenNodes, "The provided list of children nodes might not be <null>.");
 
 		for(final ImmutableNode childNode : childrenNodes) {
 
@@ -206,6 +210,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 			Object childObject;
 
+			//in this block we get the object of the current child node.
 			if(NodeType.SURF_OBJECT.equals(childNodeType)) {
 				childObject = new SurfObject(((URI)childNode.getAttributes().get(SURF_OBJECT_IRI_ATTRIBUTE_LABEL)),
 						((String)childNode.getAttributes().get(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL)));
@@ -219,6 +224,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 				childObject = childNode.getValue();
 			}
 
+			//in this block we add the obtained child object to the parent structure.
 			if(parentStructure instanceof SurfObject) {
 				((SurfObject)parentStructure).setPropertyValue(childNode.getNodeName(), toObject(childObject, childNode.getChildren()));
 			} else if(parentStructure instanceof Map) {
@@ -278,7 +284,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	 * @param nodeBuilder The {@link ImmutableNode} that will be built based on the given properties.
 	 * @param nodeProperties The properties to be added to the given {@link ImmutableNode.Builder}.
 	 * 
-	 * @return The given {@link ImmutableNode.Builder} with all the properties provided added into it.
+	 * @return The given {@link ImmutableNode.Builder} with all the properties provided added into it in order to allow method chaining.
 	 */
 	@SuppressWarnings("unchecked")
 	private ImmutableNode.Builder createHierarchy(@Nonnull final ImmutableNode.Builder nodeBuilder,
@@ -322,9 +328,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 				childNodeBuilder.value(childNodeValue);
 			}
 
-			createHierarchy(childNodeBuilder, entries);
-
-			nodeBuilder.addChild(childNodeBuilder.create());
+			nodeBuilder.addChild(createHierarchy(childNodeBuilder, entries).create());
 		}
 
 		return nodeBuilder;

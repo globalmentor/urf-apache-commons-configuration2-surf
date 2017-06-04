@@ -367,7 +367,7 @@ public class SurfConfigurationTest {
 		assertThat(config.getProperty("authenticated"), is(true));
 		assertThat(config.getProperty("sort"), equalTo(CodePointCharacter.of('d')));
 
-		final SurfObject nameObject = new SurfObject();
+		final SurfObject nameObject = new SurfObject("Name");
 		nameObject.setPropertyValue("firstName", "Jane");
 		nameObject.setPropertyValue("lastName", "Doe");
 

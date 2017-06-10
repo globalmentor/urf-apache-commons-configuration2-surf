@@ -103,12 +103,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.globalmentor</groupId>
-			<artifactId>globalmentor-core</artifactId>
-			<version>0.5.4</version>
-		</dependency>
-
-		<dependency>
 			<groupId>io.clogr</groupId>
 			<artifactId>clogr</artifactId>
 			<version>0.7.0</version>

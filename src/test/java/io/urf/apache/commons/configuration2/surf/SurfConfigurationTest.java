@@ -274,7 +274,7 @@ public class SurfConfigurationTest {
 		assertThat(config.getProperty("joined"), equalTo(LocalDate.parse("2016-01-23")));
 		assertThat(config.getProperty("credits"), equalTo(123));
 
-		assertThat(config.size(), equalTo(11));
+		assertThat(config.size(), equalTo(10));
 	}
 
 	/**
@@ -303,7 +303,7 @@ public class SurfConfigurationTest {
 		assertThat(config.getProperty("joined"), equalTo(LocalDate.parse("2016-01-23")));
 		assertThat(config.getProperty("credits"), equalTo(123));
 
-		assertThat(config.size(), equalTo(11));
+		assertThat(config.size(), equalTo(10));
 	}
 
 	/**
@@ -323,13 +323,13 @@ public class SurfConfigurationTest {
 
 		assertThat(config.getProperty("authenticated"), is(true));
 
-		assertThat(config.size(), equalTo(11));
+		assertThat(config.size(), equalTo(10));
 
 		config.clearProperty("authenticated");
 
 		assertThat(config.getProperty("authenticated"), equalTo(null));
 
-		assertThat(config.size(), equalTo(10));
+		assertThat(config.size(), equalTo(9));
 
 		assertThat(config.getProperty("sort"), equalTo(CodePointCharacter.of('d')));
 		assertThat(config.getProperty("name"), equalTo("Jane Doe"));
@@ -362,7 +362,7 @@ public class SurfConfigurationTest {
 
 		assertThat(config.isEmpty(), is(false));
 
-		assertThat(config.size(), equalTo(12));
+		assertThat(config.size(), equalTo(11));
 
 		assertThat(config.getProperty("authenticated"), is(true));
 		assertThat(config.getProperty("sort"), equalTo(CodePointCharacter.of('d')));
@@ -399,7 +399,7 @@ public class SurfConfigurationTest {
 
 		assertThat(config.isEmpty(), is(false));
 
-		assertThat(config.size(), equalTo(12));
+		assertThat(config.size(), equalTo(11));
 
 		assertThat(config.getProperty("authenticated"), is(true));
 
@@ -407,7 +407,7 @@ public class SurfConfigurationTest {
 
 		assertThat(config.getProperty("authenticated"), equalTo(null));
 
-		assertThat(config.size(), equalTo(11));
+		assertThat(config.size(), equalTo(10));
 
 		assertThat(config.getProperty("sort"), equalTo(CodePointCharacter.of('d')));
 		assertThat(config.getProperty("name.firstName"), equalTo("Jane"));
@@ -418,7 +418,7 @@ public class SurfConfigurationTest {
 		assertThat(config.getProperty("name.firstName"), equalTo("Jane"));
 		assertThat(config.getProperty("name.lastName"), equalTo(null));
 
-		assertThat(config.size(), equalTo(10));
+		assertThat(config.size(), equalTo(9));
 
 		assertThat(config.getProperty("account"), equalTo("jane_doe@example.com"));
 		assertThat(config.getProperty("id"), equalTo(UUID.fromString("bb8e7dbe-f0b4-4d94-a1cf-46ed0e920832")));

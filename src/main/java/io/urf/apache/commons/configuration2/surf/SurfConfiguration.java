@@ -160,25 +160,21 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	 * @param hierarchyRootNode The root {@link ImmutableNode} of the hierarchy to be transformed back to an object.
 	 * 
 	 * @return The object representation of the given {@link ImmutableNode} and all its hierarchy below that.
-	 * @throws IllegalArgumentException If the given node is not a literal value or an instance of {@link SurfObject}, {@link Map}, {@link Set}, or {@link List}.
+	 * @throws IllegalArgumentException If the given node is not a literal value or an instance of {@link SurfObject} or {@link Map}.
 	 */
 	private static Object toObject(@Nonnull final ImmutableNode hierarchyRootNode) {
 		requireNonNull(hierarchyRootNode, "The provided node to be transformed must not be <null>.");
 
 		final Object hierarchyRootNodeType = hierarchyRootNode.getAttributes().get(NODE_TYPE_LABEL);
 
-		if(hierarchyRootNodeType instanceof NodeType) {
+		if(hierarchyRootNodeType instanceof NavigableNodeType) {
 
-			switch((NodeType)hierarchyRootNodeType) {
+			switch((NavigableNodeType)hierarchyRootNodeType) {
 				case SURF_OBJECT:
 					return toObject(new SurfObject(((URI)hierarchyRootNode.getAttributes().get(SURF_OBJECT_IRI_ATTRIBUTE_LABEL)),
 							((String)hierarchyRootNode.getAttributes().get(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL))), hierarchyRootNode.getChildren());
 				case MAP:
 					return toObject(new HashMap<String, Object>(), hierarchyRootNode.getChildren());
-				case SET:
-					return toObject(new HashSet<Object>(), hierarchyRootNode.getChildren());
-				case LIST:
-					return toObject(new ArrayList<Object>(), hierarchyRootNode.getChildren());
 				default:
 					throw new IllegalArgumentException("This method is not compatible with the provided data structure object.");
 			}
@@ -191,13 +187,13 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 	/**
 	 * Transform all the hierarchy below the given collection of nodes and add it to the given parent object. The given object needs to be a data structure of the
-	 * type {@link SurfObject}, {@link Map}, {@link Set}, or {@link List}.
+	 * type {@link SurfObject}, {@link Map}.
 	 * 
 	 * @param parentStructure The parent data structure object where the child nodes will be added as objects into it.
 	 * @param childrenNodes The children nodes to be transformed to objects and be added to its parent data structure.
 	 * 
 	 * @return The same parent structure provided with all its children nodes added into it as their object representation.
-	 * @throws IllegalArgumentException If the given parent structure is not an instance of {@link SurfObject}, {@link Map}, {@link Set}, or {@link List}.
+	 * @throws IllegalArgumentException If the given parent structure is not an instance of {@link SurfObject} or {@link Map}.
 	 * 
 	 * @see #toObject(ImmutableNode)
 	 */
@@ -213,15 +209,11 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 			Object childObject;
 
 			//in this block we get the object of the current child node.
-			if(NodeType.SURF_OBJECT.equals(childNodeType)) {
+			if(NavigableNodeType.SURF_OBJECT.equals(childNodeType)) {
 				childObject = new SurfObject(((URI)childNode.getAttributes().get(SURF_OBJECT_IRI_ATTRIBUTE_LABEL)),
 						((String)childNode.getAttributes().get(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL)));
-			} else if(NodeType.MAP.equals(childNodeType)) {
+			} else if(NavigableNodeType.MAP.equals(childNodeType)) {
 				childObject = new HashMap<String, Object>();
-			} else if(NodeType.SET.equals(childNodeType)) {
-				childObject = new HashSet<Object>();
-			} else if(NodeType.LIST.equals(childNodeType)) {
-				childObject = new ArrayList<Object>();
 			} else {
 				childObject = childNode.getValue();
 			}
@@ -231,10 +223,6 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 				((SurfObject)parentStructure).setPropertyValue(childNode.getNodeName(), toObject(childObject, childNode.getChildren()));
 			} else if(parentStructure instanceof Map) {
 				((Map<String, Object>)parentStructure).put(childNode.getNodeName(), toObject(childObject, childNode.getChildren()));
-			} else if(parentStructure instanceof Set) {
-				((Set<Object>)parentStructure).add(toObject(childObject, childNode.getChildren()));
-			} else if(parentStructure instanceof List) {
-				((List<Object>)parentStructure).add(toObject(childObject, childNode.getChildren()));
 			} else {
 				throw new IllegalArgumentException("This method is not compatible with the provided data structure object.");
 			}
@@ -252,38 +240,19 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	 * @return The object provided and all its hierarchy below represented by {@link ImmutableNode ImmutableNodes}.
 	 * @throws IllegalArgumentException If the given parent structure is not an instance of {@link SurfObject} or {@link Map}.
 	 */
-	@SuppressWarnings("unchecked")
 	private static ImmutableNode createHierarchy(@Nonnull final Object rootObject) {
 		requireNonNull(rootObject, "The given object must not be <null>.");
 
-		final ImmutableNode.Builder rootNodeBuilder = new ImmutableNode.Builder();
-
-		final List<Map.Entry<String, Object>> entries = new LinkedList<Map.Entry<String, Object>>();
-
-		if(rootObject instanceof SurfObject) {
-			rootNodeBuilder.addAttribute(NODE_TYPE_LABEL, NodeType.SURF_OBJECT);
-
-			((SurfObject)rootObject).getTypeName().ifPresent(typeName -> rootNodeBuilder.addAttribute(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL, typeName));
-			((SurfObject)rootObject).getIri().ifPresent(iri -> rootNodeBuilder.addAttribute(SURF_OBJECT_IRI_ATTRIBUTE_LABEL, iri));
-
-			((SurfObject)rootObject).getPropertyNameValuePairs().forEach(entry -> entries.add(new NameValuePairMapEntry<String, Object>(entry)));
-		}
-
-		else if(rootObject instanceof Map) {
-			rootNodeBuilder.addAttribute(NODE_TYPE_LABEL, NodeType.MAP);
-
-			entries.addAll(((Map<String, Object>)rootObject).entrySet());
-		}
-
-		else {
-			throw new IllegalArgumentException("The root object must be an instance of SurfObject or Map.");
-		}
-
-		return createHierarchy(rootNodeBuilder, entries).create();
+		return createHierarchy(null, Arrays.asList(new NameValuePairMapEntry<String, Object>(null, rootObject))).create();
 	}
 
 	/**
 	 * Creates all the hierarchy of the given {@link ImmutableNode} based on the given properties.
+	 * 
+	 * <p>
+	 * <strong> The <code>nodeBuilder</code> is allowed to be <code>null</code> if, and only if, the current node that's being built is the root node. </strong>
+	 * Otherwise, the hierarchy will be built incomplete.
+	 * </p>
 	 * 
 	 * @param nodeBuilder The {@link ImmutableNode} that will be built based on the given properties.
 	 * @param nodeProperties The properties to be added to the given {@link ImmutableNode.Builder}.
@@ -291,9 +260,8 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	 * @return The given {@link ImmutableNode.Builder} with all the properties provided added into it in order to allow method chaining.
 	 */
 	@SuppressWarnings("unchecked")
-	private static ImmutableNode.Builder createHierarchy(@Nonnull final ImmutableNode.Builder nodeBuilder,
+	private static ImmutableNode.Builder createHierarchy(@Nullable final ImmutableNode.Builder nodeBuilder,
 			@Nonnull final Iterable<? extends Map.Entry<String, Object>> nodeProperties) {
-		requireNonNull(nodeBuilder, "The given node to be built must not be <null>.");
 		requireNonNull(nodeProperties, "The iterable with the properties to be added to the given node must not be <null>.");
 
 		for(final Map.Entry<String, Object> childProperty : nodeProperties) {
@@ -303,7 +271,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 			List<Map.Entry<String, Object>> entries = new LinkedList<>();
 
 			if(childNodeValue instanceof SurfObject) {
-				childNodeBuilder.addAttribute(NODE_TYPE_LABEL, NodeType.SURF_OBJECT);
+				childNodeBuilder.addAttribute(NODE_TYPE_LABEL, NavigableNodeType.SURF_OBJECT);
 
 				((SurfObject)childNodeValue).getTypeName().ifPresent(typeName -> childNodeBuilder.addAttribute(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL, typeName));
 				((SurfObject)childNodeValue).getIri().ifPresent(iri -> childNodeBuilder.addAttribute(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL, iri));
@@ -312,25 +280,17 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 			}
 
 			else if(childNodeValue instanceof Map) {
-				childNodeBuilder.addAttribute(NODE_TYPE_LABEL, NodeType.MAP);
+				childNodeBuilder.addAttribute(NODE_TYPE_LABEL, NavigableNodeType.MAP);
 
 				entries.addAll(((Map<String, Object>)childNodeValue).entrySet());
 			}
 
-			else if(childNodeValue instanceof Set) {
-				childNodeBuilder.addAttribute(NODE_TYPE_LABEL, NodeType.SET);
-
-				((Set<Object>)childNodeValue).forEach(entry -> entries.add(new NameValuePairMapEntry<String, Object>(null, entry)));
-			}
-
-			else if(childNodeValue instanceof List) {
-				childNodeBuilder.addAttribute(NODE_TYPE_LABEL, NodeType.LIST);
-
-				((Set<Object>)childNodeValue).forEach(entry -> entries.add(new NameValuePairMapEntry<String, Object>(null, entry)));
-			}
-
 			else {
 				childNodeBuilder.value(childNodeValue);
+			}
+
+			if(nodeBuilder == null) { //if we are handling with the root node.
+				return createHierarchy(childNodeBuilder, entries); //we simply return the first child node builder.
 			}
 
 			nodeBuilder.addChild(createHierarchy(childNodeBuilder, entries).create());
@@ -339,6 +299,19 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 		return nodeBuilder;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * 
+	 * <p>
+	 * The instances of {@link SurfObject} and {@link Map} are the only objects navigable on the hierarchy, if there is a need for an element from a {@link List}
+	 * or {@link Set}, the {@link List} or {@link Set} itself will be returned and the user must manually get the element iterating through them.
+	 * </p>
+	 * 
+	 * <p>
+	 * This approach was used because there's no way of lookup for elements by index in a {@link Set}, and the lookup for elements by index in a {@link List} with
+	 * the current implementation would drop the performance in case of {@link List Lists} with a huge amount of elements.
+	 * </p>
+	 */
 	@Override
 	protected Object getPropertyInternal(@Nonnull final String key) {
 		List<QueryResult<ImmutableNode>> results = fetchNodeList(key);
@@ -351,7 +324,15 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 	}
 
-	/** Calculates the size of the {@link SurfConfiguration} based on the number of values stored in it. */
+	/**
+	 * {@inheritDoc}
+	 * 
+	 * Calculates the size of the {@link SurfConfiguration} based only on the number of values stored in it.
+	 * 
+	 * <p>
+	 * As instances of {@link List Lists} and {@link Set Sets} are not navigable, they are counted as a single value.
+	 * </p>
+	 */
 	@Override
 	protected int sizeInternal() {
 		return sizeInternal(getNodeModel().getRootNode());
@@ -393,12 +374,12 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	}
 
 	/**
-	 * Class created to represent the node types supported by a SURF document.
+	 * Enum created to represent the node types supported by a SURF document.
 	 * 
 	 * @author Magno N A Cruz
 	 */
-	private enum NodeType {
-		SURF_OBJECT, MAP, SET, LIST;
+	private enum NavigableNodeType {
+		SURF_OBJECT, MAP;
 	}
 
 }

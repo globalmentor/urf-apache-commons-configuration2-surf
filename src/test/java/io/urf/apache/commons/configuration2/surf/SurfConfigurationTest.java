@@ -53,7 +53,8 @@ public class SurfConfigurationTest {
 	public final TemporaryFolder tempFolder = new TemporaryFolder();
 
 	/**
-	 * Test whether the configuration is working with a configuration file.
+	 * Test whether the configuration is working with a configuration file. This test also sees if {@link SurfConfiguration#addProperty(String, Object)} is
+	 * working properly and not adding duplicated objects.
 	 * 
 	 * @throws ConfigurationException if any error occur while configuring the file.
 	 * @throws IOException if an I/O error occur.
@@ -70,7 +71,8 @@ public class SurfConfigurationTest {
 
 		assertThat(config.isEmpty(), is(true));
 
-		config.addProperty("name", "Jane Doe");
+		config.addProperty("name", "Jane Dee");
+		config.addProperty("name", "Jane Doe"); //this call should override the previous value of "name";
 		config.addProperty("account", "jane_doe@example.com");
 
 		configBuilder.save();

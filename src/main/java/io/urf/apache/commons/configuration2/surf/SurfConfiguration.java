@@ -349,6 +349,19 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	 * {@inheritDoc}
 	 * 
 	 * <p>
+	 * This implementation is the same as {@link BaseHierarchicalConfiguration#setProperty(String, Object)} in order to not accept duplicated keys in the same
+	 * level.
+	 * </p>
+	 */
+	@Override
+	protected void addPropertyInternal(String key, Object obj) {
+		super.setPropertyInternal(key, obj);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * 
+	 * <p>
 	 * The instances of {@link SurfObject} and {@link Map} are the only objects navigable on the hierarchy, if there is a need for an element from a {@link List}
 	 * or {@link Set}, the {@link List} or {@link Set} itself will be returned and the user must manually get the element iterating through them.
 	 * </p>

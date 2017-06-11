@@ -72,6 +72,52 @@ import static java.util.Objects.*;
  * </p>
  * 
  * <p>
+ * An instance of {@link SurfConfiguration} may be gotten by using the following statement:
+ * 
+ * <pre>
+ * <code>
+ * final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(<var>configurationFile<var>)).getConfiguration();
+ * </code>
+ * </pre>
+ * 
+ * To add properties there is the following statement:
+ * 
+ * <pre>
+ * <code>
+ * config.addProperty(<var>propertyName</var>, <var>propertyValue</var>);
+ * </code>
+ * </pre>
+ * 
+ * To get properties there is the following statement:
+ * 
+ * <pre>
+ * <code>
+ * config.getProperty(<var>propertyName</var>);
+ * </code>
+ * </pre>
+ * 
+ * The hierarchy model provided by Apache is also supported for {@link SurfObject SurfObjects} and {@link Map Maps}. e.g.:
+ * 
+ * <pre>
+ * <code>
+ * config.getProperty("surfObjectName.propertyName");
+ * or
+ * config.getProperty("MapName.propertyName");
+ * </code>
+ * </pre>
+ * 
+ * The current implementation handles with {@link List Lists} and {@link Set Sets} as if they were simple properties, so to get or change an element from one of
+ * these types at first the {@link List} or the {@link Set} must be returned by itself, and then the user must manually iterate through them to get the wanted
+ * property. e.g.:
+ * 
+ * <pre>
+ * <code>
+ * config.getProperty("listName").get(<var>index</var>);
+ * </code>
+ * </pre>
+ * 
+ * <p>
  * The SURF document serialized will always be formatter. See {@link SurfSerializer#setFormatted(boolean)}.
  * </p>
  * 

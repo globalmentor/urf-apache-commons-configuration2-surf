@@ -254,7 +254,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	 * Otherwise, the hierarchy will be built incomplete.
 	 * </p>
 	 * 
-	 * @param nodeBuilder The {@link ImmutableNode} that will be built based on the given properties.
+	 * @param nodeBuilder The {@link ImmutableNode} that will be built based on the given properties, or {@code null} if the node to be build is the root node.
 	 * @param nodeProperties The properties to be added to the given {@link ImmutableNode.Builder}.
 	 * 
 	 * @return The given {@link ImmutableNode.Builder} with all the properties provided added into it in order to allow method chaining.

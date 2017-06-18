@@ -28,11 +28,14 @@ import org.apache.commons.configuration2.io.FileHandler;
 import org.apache.commons.configuration2.tree.*;
 
 import com.globalmentor.collections.NameValuePairMapEntry;
+import com.globalmentor.java.Conditions;
 
 import io.urf.surf.parser.*;
 import io.urf.surf.serializer.*;
 
 import static java.util.Objects.*;
+
+import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymbols.*;
 
 /**
  * An implementation for a {@link FileBasedConfiguration} that uses a SURF file to store information.
@@ -102,20 +105,110 @@ import static java.util.Objects.*;
  * <pre>
  * <code>
  * config.getProperty("surfObjectName.propertyName");
+ * </code>
+ * </pre>
+ * 
  * or
+ * 
+ * <pre>
+ * <code>
  * config.getProperty("MapName.propertyName");
  * </code>
  * </pre>
  * 
- * The current implementation handles with {@link List Lists} and {@link Set Sets} as if they were simple properties, so to get or change an element from one of
- * these types at first the {@link List} or the {@link Set} must be returned by itself, and then the user must manually iterate through them to get the wanted
- * property. e.g.:
+ * The current implementation has a XML based lookup for {@link List Lists}, what makes it possible to query the items of a {@link List} using {@link SurfObject
+ * SurfObject's} type name. <em>This lookup is only supported by {@link SurfObject SurfObjects} that have a type name</em>. e.g.:
  * 
  * <pre>
  * <code>
- * config.getProperty("listName").get(<var>index</var>);
+ * config.getProperty("listName.SurfObjectTypeName(0)");
  * </code>
  * </pre>
+ * 
+ * Here is an example of SURF file and how we would use the methods above:
+ * 
+ * <pre>
+ * <code>
+ * *Configuration:
+ *   authenticated = true
+ *   sort = 'd'
+ *   name = "Jane Doe"
+ *   id = &bb8e7dbe-f0b4-4d94-a1cf-46ed0e920832
+ *   email = ^jane_doe@example.com
+ *   phone = +12015550123
+ *   aliases = [
+ *     "jdoe"
+ *     "janed"
+ *   ]
+ *   homePage = <http://www.example.com/jdoe/>
+ *   salt = %Zm9vYmFy
+ *   joined = @2016-01-23,
+ *   credits = 123
+ *   favoriteThings = {
+ *     "aliquot" : "User's favorite word."
+ *     "amethyst" : "User's favorite stone."
+ *   }
+ *   !the list of colors said to make up the spectrum of a rainbow, in order
+ *   rainbow = [
+ *     *Color: 
+ *       name = "red"
+ *     ;
+ *     *Color: 
+ *       name = "orange"
+ *     ;
+ *     *Color: 
+ *       name = "yellow"
+ *     ;
+ *     *Color: 
+ *       name = "green"
+ *     ;
+ *     *Color: 
+ *       name = "blue"
+ *     ;
+ *     *Color: 
+ *       name = "indigo"
+ *     ;
+ *     *Color: 
+ *       name = "violet"
+ *     ;
+ *   ]
+ * ;
+ * </code>
+ * </pre>
+ * 
+ * <p>
+ * Here is an example of how to get a simple string property:
+ * 
+ * <pre>
+ * <code>
+ * config.getProperty("name"); //returns "Jane Doe"
+ * </pre>
+ * </code>
+ * 
+ * To get a property in its specific class, the class must be provided to the following method:
+ * 
+ * <pre>
+ * <code>
+ * config.getProperty("favoriteThings"Boolean.class, "authenticated"); //returns true. <em>If the class would not be provided, a string representation of the value would be returned.</em>
+ * </pre>
+ * </code>
+ * 
+ * Here is an example of how to get a property in a lower level in the hierarchy:
+ * 
+ * <pre>
+ * <code>
+ * config.getProperty("favoriteThings.aliquot"); //returns "User's favorite word.".
+ * </pre>
+ * </code>
+ * 
+ * Here is an example of how to make a lookup in a {@link List}:
+ * 
+ * <pre>
+ * <code>
+ * config.getProperty("rainbow.Color(5)"); //returns "indigo". <em>The lookup is zero-based, and it only works with {@link SurfObject SurfObjects} with their type names properly set up.</em>
+ * </pre>
+ * </code>
+ * </p>
  * 
  * <p>
  * The SURF document serialized will always be formatter. See {@link SurfSerializer#setFormatted(boolean)}.
@@ -158,15 +251,15 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 				throw new ConfigurationException("The element on the file is not a valid SURF configuration file.");
 			}
 
-			final ImmutableNode rootNode;
+			final ImmutableNode.Builder rootNodeBuilder;
 
 			if(surfDocument != null) {
-				rootNode = createHierarchy(surfDocument);
+				rootNodeBuilder = createHierarchy(surfDocument);
 			} else {
-				rootNode = createHierarchy(new SurfObject(DEFAULT_ROOT_TYPE_NAME));
+				rootNodeBuilder = createHierarchy(new SurfObject(DEFAULT_ROOT_TYPE_NAME));
 			}
 
-			getModel().setRootNode(rootNode);
+			getModel().setRootNode(rootNodeBuilder.create());
 		}
 
 	}
@@ -213,14 +306,18 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 		final Object hierarchyRootNodeType = hierarchyRootNode.getAttributes().get(NODE_TYPE_LABEL);
 
-		if(hierarchyRootNodeType instanceof NavigableNodeType) {
+		if(hierarchyRootNodeType instanceof NodeType) {
 
-			switch((NavigableNodeType)hierarchyRootNodeType) {
+			switch((NodeType)hierarchyRootNodeType) {
 				case SURF_OBJECT:
 					return toObject(new SurfObject(((URI)hierarchyRootNode.getAttributes().get(SURF_OBJECT_IRI_ATTRIBUTE_LABEL)),
 							((String)hierarchyRootNode.getAttributes().get(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL))), hierarchyRootNode.getChildren());
 				case MAP:
 					return toObject(new HashMap<String, Object>(), hierarchyRootNode.getChildren());
+				case LIST:
+					return toObject(new LinkedList<Object>(), hierarchyRootNode.getChildren());
+				case SET:
+					return toObject(new HashSet<Object>(), hierarchyRootNode.getChildren());
 				default:
 					throw new IllegalArgumentException("This method is not compatible with the provided data structure object.");
 			}
@@ -255,11 +352,15 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 			Object childObject;
 
 			//in this block we get the object of the current child node.
-			if(NavigableNodeType.SURF_OBJECT.equals(childNodeType)) {
+			if(NodeType.SURF_OBJECT.equals(childNodeType)) {
 				childObject = new SurfObject(((URI)childNode.getAttributes().get(SURF_OBJECT_IRI_ATTRIBUTE_LABEL)),
 						((String)childNode.getAttributes().get(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL)));
-			} else if(NavigableNodeType.MAP.equals(childNodeType)) {
+			} else if(NodeType.MAP.equals(childNodeType)) {
 				childObject = new HashMap<String, Object>();
+			} else if(NodeType.LIST.equals(childNodeType)) {
+				childObject = new LinkedList<Object>();
+			} else if(NodeType.SET.equals(childNodeType)) {
+				childObject = new HashSet<Object>();
 			} else {
 				childObject = childNode.getValue();
 			}
@@ -269,6 +370,10 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 				((SurfObject)parentStructure).setPropertyValue(childNode.getNodeName(), toObject(childObject, childNode.getChildren()));
 			} else if(parentStructure instanceof Map) {
 				((Map<String, Object>)parentStructure).put(childNode.getNodeName(), toObject(childObject, childNode.getChildren()));
+			} else if(parentStructure instanceof List) {
+				((List<Object>)parentStructure).add(toObject(childObject, childNode.getChildren()));
+			} else if(parentStructure instanceof Set) {
+				((Set<Object>)parentStructure).add(toObject(childObject, childNode.getChildren()));
 			} else {
 				throw new IllegalArgumentException("This method is not compatible with the provided data structure object.");
 			}
@@ -286,10 +391,10 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	 * @return The object provided and all its hierarchy below represented by {@link ImmutableNode ImmutableNodes}.
 	 * @throws IllegalArgumentException If the given parent structure is not an instance of {@link SurfObject} or {@link Map}.
 	 */
-	private static ImmutableNode createHierarchy(@Nonnull final Object rootObject) {
+	public static ImmutableNode.Builder createHierarchy(@Nonnull final Object rootObject) {
 		requireNonNull(rootObject, "The given object must not be <null>.");
 
-		return createHierarchy(null, Arrays.asList(new NameValuePairMapEntry<String, Object>(null, rootObject))).create();
+		return createHierarchy(null, Arrays.asList(new NameValuePairMapEntry<String, Object>(null, rootObject)));
 	}
 
 	/**
@@ -317,26 +422,40 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 			List<Map.Entry<String, Object>> entries = new LinkedList<>();
 
 			if(childNodeValue instanceof SurfObject) {
-				childNodeBuilder.addAttribute(NODE_TYPE_LABEL, NavigableNodeType.SURF_OBJECT);
-
 				((SurfObject)childNodeValue).getTypeName().ifPresent(typeName -> childNodeBuilder.addAttribute(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL, typeName));
-				((SurfObject)childNodeValue).getIri().ifPresent(iri -> childNodeBuilder.addAttribute(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL, iri));
+				((SurfObject)childNodeValue).getIri().ifPresent(iri -> childNodeBuilder.addAttribute(SURF_OBJECT_IRI_ATTRIBUTE_LABEL, iri));
 
 				((SurfObject)childNodeValue).getPropertyNameValuePairs().forEach(entry -> entries.add(new NameValuePairMapEntry<String, Object>(entry)));
 			}
 
 			else if(childNodeValue instanceof Map) {
-				childNodeBuilder.addAttribute(NODE_TYPE_LABEL, NavigableNodeType.MAP);
-
 				entries.addAll(((Map<String, Object>)childNodeValue).entrySet());
+			}
+
+			else if(childNodeValue instanceof List) {
+				((List<Object>)childNodeValue).forEach(entry -> {
+					String typeName = null;
+
+					if(entry instanceof SurfObject) {
+						typeName = ((SurfObject)entry).getTypeName().orElse(null); //if the child node is a SurfObject, we use its type name as node name to make sure that the index lookup will work.
+					}
+
+					entries.add(new NameValuePairMapEntry<String, Object>(typeName, entry));
+				});
+			}
+
+			else if(childNodeValue instanceof Set) {
+				((Set<Object>)childNodeValue).forEach(entry -> entries.add(new NameValuePairMapEntry<String, Object>(null, entry)));
 			}
 
 			else {
 				childNodeBuilder.value(childNodeValue);
 			}
 
-			if(nodeBuilder == null) { //if we are handling with the root node.
-				return createHierarchy(childNodeBuilder, entries); //we simply return the first child node builder.
+			childNodeBuilder.addAttribute(NODE_TYPE_LABEL, NodeType.of(childNodeValue));
+
+			if(nodeBuilder == null) {
+				return createHierarchy(childNodeBuilder, entries); //if we are handling with the root node we simply return the first child node builder.
 			}
 
 			nodeBuilder.addChild(createHierarchy(childNodeBuilder, entries).create());
@@ -354,31 +473,196 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	 * </p>
 	 */
 	@Override
-	protected void addPropertyInternal(String key, Object obj) {
-		super.setPropertyInternal(key, obj);
+	protected void addPropertyInternal(@Nonnull String key, @Nullable Object obj) {
+		setPropertyInternal(key, obj);
 	}
 
 	/**
 	 * {@inheritDoc}
-	 * 
 	 * <p>
-	 * The instances of {@link SurfObject} and {@link Map} are the only objects navigable on the hierarchy, if there is a need for an element from a {@link List}
-	 * or {@link Set}, the {@link List} or {@link Set} itself will be returned and the user must manually get the element iterating through them.
-	 * </p>
+	 * If the object provided is one of the data structures supported by this implementation, it manually converts and adds it to the hierarchy, otherwise, this
+	 * method just delegates to {@link AbstractHierarchicalConfiguration#setPropertyInternal(String, Object)}.
 	 * 
-	 * <p>
-	 * This approach was used because there's no way of lookup for elements by index in a {@link Set}, and the lookup for elements by index in a {@link List} with
-	 * the current implementation would drop the performance in case of {@link List Lists} with a huge amount of elements.
+	 * <strong>The support for addition of properties by the use of index <code>(-1)</code> is not yet implemented.</strong>
 	 * </p>
 	 */
 	@Override
-	protected Object getPropertyInternal(@Nonnull final String key) {
-		List<QueryResult<ImmutableNode>> results = fetchNodeList(key);
+	protected void setPropertyInternal(@Nonnull String key, @Nullable Object obj) {
+		requireNonNull(key, "The key of the object to be added to the configuration must not be <null>.");
 
-		if(results.isEmpty()) {
-			return null;
+		if(!NodeType.isCompatible(obj)) {
+			super.setPropertyInternal(key, obj); //if the default implementation handles with the type of the given object properly, we just delegate to it.
+
+			//fixNodeProperties(key); introduce it again when index (-1) is enabled.
+
+			return;
+		}
+
+		final boolean keyExists = containsKey(key);
+
+		final ImmutableNode.Builder nodeBuilder = createHierarchy(obj);
+
+		if(key.contains(DEFAULT_PROPERTY_DELIMITER)) {
+			String parentKey = key.substring(0, key.lastIndexOf(DEFAULT_PROPERTY_DELIMITER));
+			String newNodeKey = key.substring(key.lastIndexOf(DEFAULT_PROPERTY_DELIMITER) + 1, key.length());
+
+			HierarchicalConfiguration<ImmutableNode> subHierarchy = configurationAt(parentKey, true);
+
+			ImmutableNode subHierarchyRootNode = subHierarchy.getNodeModel().getNodeHandler().getRootNode();
+
+			ImmutableNode subHierarchyParentNode = null;
+
+			for(ImmutableNode node : subHierarchyRootNode.getChildren()) {
+				if(node.getNodeName().equals(parentKey)) {
+					subHierarchyParentNode = node;
+				}
+			}
+
+			if(subHierarchyParentNode == null) {
+				throw new AssertionError("The node to be replaced shouldn't be null at this point.");
+			}
+
+			final List<ImmutableNode> childrenNodes = subHierarchyParentNode.getChildren();
+
+			final List<ImmutableNode> newChildrenNodes = new LinkedList<ImmutableNode>();
+
+			if(newNodeKey.contains(DEFAULT_INDEX_START)) {
+				Conditions.checkArgument(obj instanceof SurfObject, "Indexes are only supported with SurfObject instances.");
+
+				int lookupIndex = Integer.parseInt(newNodeKey.substring(newNodeKey.indexOf(DEFAULT_INDEX_START) + 1, newNodeKey.indexOf(DEFAULT_INDEX_END)));
+
+				newNodeKey = newNodeKey.substring(0, newNodeKey.indexOf(DEFAULT_INDEX_START));
+
+				int lookupCount = 0;
+
+				for(final ImmutableNode child : childrenNodes) {
+
+					if(child.getNodeName().equals(newNodeKey)) {
+						if(lookupCount == lookupIndex) {
+							newChildrenNodes.add(nodeBuilder.name(newNodeKey).create());
+						} else {
+							newChildrenNodes.add(child);
+						}
+
+						lookupCount++;
+					} else {
+						newChildrenNodes.add(child);
+					}
+
+				}
+
+				subHierarchyRootNode = subHierarchyRootNode.replaceChild(subHierarchyParentNode, subHierarchyParentNode.replaceChildren(newChildrenNodes));
+			} else {
+
+				if(keyExists) {
+					for(final ImmutableNode child : childrenNodes) {
+						if(child.getNodeName().equals(newNodeKey)) {
+							newChildrenNodes.add(nodeBuilder.name(newNodeKey).create());
+						} else {
+							newChildrenNodes.add(child);
+						}
+
+					}
+
+					subHierarchyRootNode = subHierarchyRootNode.replaceChild(subHierarchyParentNode, subHierarchyParentNode.replaceChildren(newChildrenNodes));
+				} else {
+					subHierarchyRootNode = subHierarchyRootNode.replaceChild(subHierarchyParentNode,
+							subHierarchyParentNode.addChild(nodeBuilder.name(newNodeKey).create()));
+				}
+
+			}
+
+			//			if(parentKey.contains(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END))) {
+			//				final String splittedKey = key.split(DEFAULT_PROPERTY_DELIMITER)[key.length() - 2];
+			//
+			//				parentNode = parentNode.setAttribute(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL, NodeType.SURF_OBJECT);
+			//				parentNode = parentNode.setName(splittedKey.substring(0, splittedKey.length() - 3));
+			//			}
+
+			subHierarchy.getNodeModel().setRootNode(subHierarchyRootNode);
 		} else {
-			return toObject(results.iterator().next().getNode());
+			final ImmutableNode parentNode = getNodeModel().getRootNode();
+
+			if(keyExists) {
+
+				for(final ImmutableNode childNode : parentNode.getChildren()) {
+					if(childNode.getNodeName().equals(key)) {
+						getNodeModel().setRootNode(parentNode.replaceChild(childNode, nodeBuilder.name(key).create()));
+					}
+				}
+
+			} else {
+				getNodeModel().setRootNode(parentNode.addChild(nodeBuilder.name(key).create()));
+			}
+		}
+
+	}
+
+	//	//TODO JAVADOCS AND FINISH IMPLEMENTATION
+	//	private void fixNodeProperties(@Nonnull String key) {
+	//
+	//		if(key.contains(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END))) {
+	//
+	//			final String keyWithoutIndex = key.substring(0, key.lastIndexOf(String.format("%s-1%s.", DEFAULT_INDEX_START, DEFAULT_INDEX_END)));
+	//			final HierarchicalConfiguration<ImmutableNode> parentNodeHierarchy;
+	//
+	//			List<ImmutableNode> childrenNodes;
+	//
+	//			if(keyWithoutIndex.contains(DEFAULT_PROPERTY_DELIMITER)) {
+	//				parentNodeHierarchy = configurationAt(keyWithoutIndex.substring(keyWithoutIndex.indexOf("."), keyWithoutIndex.lastIndexOf(".")), true);
+	//				childrenNodes = parentNodeHierarchy.getNodeModel().getNodeHandler().getRootNode().getChildren();
+	//				for(int i = 0; i < childrenNodes.size(); i++) {
+	//					if(childrenNodes.get(i).getNodeName().equals(keyWithoutIndex.substring(keyWithoutIndex.indexOf("."), keyWithoutIndex.lastIndexOf(".")))) {
+	//						childrenNodes = Arrays.asList(childrenNodes.get(i));
+	//					}
+	//				}
+	//			} else {
+	//				parentNodeHierarchy = (HierarchicalConfiguration<ImmutableNode>)this;
+	//				childrenNodes = parentNodeHierarchy.getNodeModel().getNodeHandler().getRootNode().getChildren();
+	//			}
+	//
+	//			for(ImmutableNode childNode : childrenNodes) {
+	//				if(childNode.getNodeName().equals(key.substring(key.lastIndexOf(DEFAULT_PROPERTY_DELIMITER), key.length())) && childNode.getAttributes().isEmpty()) {
+	//					parentNodeHierarchy.getNodeModel().setRootNode(parentNodeHierarchy.getNodeModel().getNodeHandler().getRootNode().replaceChild(childNode,
+	//							childNode.setAttribute(NODE_TYPE_LABEL, NodeType.SURF_OBJECT)));
+	//
+	//					parentNodeHierarchy.getNodeModel().setRootNode(parentNodeHierarchy.getNodeModel().getNodeHandler().getRootNode().replaceChild(childNode,
+	//							childNode.setAttribute(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL, key.substring(key.lastIndexOf(DEFAULT_PROPERTY_DELIMITER), key.length()))));
+	//				}
+	//			}
+	//
+	//			//elementsWithoutNodeTypeAttribute.forEach(hierarchy -> hierarchy.getNodeModel()
+	//			//		.setRootNode(hierarchy.getNodeModel().getNodeHandler().getRootNode().setAttribute(NODE_TYPE_LABEL, NodeType.SURF_OBJECT)));
+	//
+	//			//			.forEach(hierarchy -> {
+	//			//
+	//			//				if(!hierarchy.getNodeModel().getNodeHandler().getRootNode().getAttributes().containsKey(NODE_TYPE_LABEL)) {
+	//			//					hierarchy.getNodeModel()
+	//			//							.setRootNode(hierarchy.getNodeModel().getNodeHandler().getRootNode().setAttribute(NODE_TYPE_LABEL, NavigableNodeType.SURF_OBJECT));
+	//			//				}
+	//			//
+	//			//			});
+	//
+	//		}
+	//
+	//	}
+
+	@Override
+	protected Object getPropertyInternal(@Nonnull final String key) {
+		List<QueryResult<ImmutableNode>> queryResults = fetchNodeList(key);
+
+		if(queryResults.isEmpty()) {
+			return null;
+		}
+
+		else if(queryResults.size() == 1) {
+			return toObject(queryResults.iterator().next().getNode());
+		}
+
+		else {
+			final List<Object> resultObjects = new LinkedList<Object>();
+			queryResults.forEach(result -> resultObjects.add(toObject(result.getNode())));
+			return resultObjects;
 		}
 
 	}
@@ -437,8 +721,47 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	 * 
 	 * @author Magno N A Cruz
 	 */
-	private enum NavigableNodeType {
-		SURF_OBJECT, MAP;
+	private enum NodeType {
+		SURF_OBJECT, MAP, LIST, SET;
+
+		/**
+		 * Returns the instance of {@link NodeType} that will represent the type of the object provided in its node form.
+		 * 
+		 * @param obj The object that needs to be represented by an instance of this class.
+		 * @return An instance representing the type of the object provided, {@code null} if the object isn't supported by {@link SurfConfiguration} or it's a
+		 *         literal.
+		 */
+		public static NodeType of(@Nullable final Object obj) {
+
+			if(obj instanceof SurfObject) {
+				return SURF_OBJECT;
+			} else if(obj instanceof Map) {
+				return MAP;
+			} else if(obj instanceof List) {
+				return LIST;
+			} else if(obj instanceof Set) {
+				return SET;
+			} else {
+				return null;
+			}
+
+		}
+
+		/**
+		 * Returns whether {@link NodeType} may represent the type of the object provided in its node form.
+		 * 
+		 * @param obj The object that needs to be represented by an instance of this class.
+		 * @return {@code true} if {@link NodeType} has an instance for the type of the object provided, {@link false} if not.
+		 */
+		public static boolean isCompatible(@Nullable final Object obj) {
+
+			if(obj instanceof SurfObject || obj instanceof Map || obj instanceof List || obj instanceof Set) {
+				return true;
+			} else {
+				return false;
+			}
+
+		}
 	}
 
 }

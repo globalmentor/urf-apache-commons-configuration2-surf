@@ -108,7 +108,7 @@ public class SurfConfigurationTest {
 
 		SurfObject surfDocument = (SurfObject)new SurfParser().parse(Files.newBufferedReader(configFile.toPath())).get();
 
-		assertThat(config.size(), equalTo(14));
+		assertThat(config.size(), equalTo(9));
 
 		assertThat(surfDocument.getPropertyValue("name").get(), equalTo("Jane Doe"));
 		assertThat(surfDocument.getPropertyValue("contactInfo").get(), equalTo(contactInfoSurfObject));
@@ -137,17 +137,11 @@ public class SurfConfigurationTest {
 
 		assertThat(config.getProperty("name"), equalTo("Jane Dee"));
 
-		assertThat(config.size(), equalTo(1));
-
 		config.addProperty("name", "Jane Doe"); //this call should override the previous value of "name".
 
 		assertThat(config.getProperty("name"), equalTo("Jane Doe"));
 
-		assertThat(config.size(), equalTo(1));
-
 		config.addProperty("name", null); //this call should remove the property.
-
-		assertThat(config.size(), equalTo(0));
 
 		//Tests with properties in the root node.
 
@@ -160,12 +154,6 @@ public class SurfConfigurationTest {
 			config.addProperty("user", userSurfObject);
 
 			assertThat(config.getProperty("user"), equalTo(userSurfObject));
-
-			userSurfObject.setPropertyValue("name", "Jane Doe");
-
-			config.addProperty("user", userSurfObject);
-
-			assertThat(config.getProperty("user"), equalTo(userSurfObject)); //this call make sure that the property has been replaced.
 		}
 
 		{ //tests with Maps
@@ -222,6 +210,8 @@ public class SurfConfigurationTest {
 			assertThat(config.getProperty("favoriteThings"), equalTo(favoriteThingsMap));
 		}
 
+		config.clear();
+
 		{ //Test with Lists
 			final List<SurfObject> favoriteColorsList = Lists.listOf(new ArrayList<SurfObject>(), new SurfObject("Color"), new SurfObject("Color"),
 					new SurfObject("Color"), new SurfObject("Color"), new SurfObject("Color"), new SurfObject("Color"));
@@ -261,7 +251,6 @@ public class SurfConfigurationTest {
 
 			assertThat(config.getProperty("favoriteColors"), not(equalTo(favoriteColorsList)));
 
-			//Tests whether the query is working with its only supported type.
 			assertThat(config.getProperty("favoriteColors.Color"), not(equalTo(favoriteColorsList)));
 
 			config.addProperty("favoriteColors.Color(5)", favoriteColorsList.get(5));
@@ -475,7 +464,7 @@ public class SurfConfigurationTest {
 		assertThat(config.getProperty("salt"), equalTo(new byte[] {102, 111, 111, 98, 97, 114}));
 		assertThat(config.getProperty("joined"), equalTo(LocalDate.parse("2016-01-23")));
 		assertThat(config.getProperty("credits"), equalTo(123));
-		assertThat(config.size(), equalTo(11));
+		assertThat(config.size(), equalTo(10));
 	}
 
 	/**
@@ -503,7 +492,7 @@ public class SurfConfigurationTest {
 		assertThat(config.getProperty("salt"), equalTo(new byte[] {102, 111, 111, 98, 97, 114}));
 		assertThat(config.getProperty("joined"), equalTo(LocalDate.parse("2016-01-23")));
 		assertThat(config.getProperty("credits"), equalTo(123));
-		assertThat(config.size(), equalTo(11));
+		assertThat(config.size(), equalTo(10));
 	}
 
 	/**
@@ -523,7 +512,7 @@ public class SurfConfigurationTest {
 
 		assertThat(config.getProperty("authenticated"), is(true));
 
-		assertThat(config.size(), equalTo(11));
+		assertThat(config.size(), equalTo(10));
 
 		config.clearProperty("authenticated");
 
@@ -607,7 +596,7 @@ public class SurfConfigurationTest {
 
 		assertThat(config.getProperty("authenticated"), equalTo(null));
 
-		assertThat(config.size(), equalTo(11));
+		assertThat(config.size(), equalTo(12));
 
 		assertThat(config.getProperty("sort"), equalTo(CodePointCharacter.of('d')));
 		assertThat(config.getProperty("name.firstName"), equalTo("Jane"));
@@ -618,7 +607,7 @@ public class SurfConfigurationTest {
 		assertThat(config.getProperty("name.firstName"), equalTo("Jane"));
 		assertThat(config.getProperty("name.lastName"), equalTo(null));
 
-		assertThat(config.size(), equalTo(10));
+		assertThat(config.size(), equalTo(12));
 
 		assertThat(config.getProperty("account"), equalTo("jane_doe@example.com"));
 		assertThat(config.getProperty("id"), equalTo(UUID.fromString("bb8e7dbe-f0b4-4d94-a1cf-46ed0e920832")));
@@ -695,6 +684,92 @@ public class SurfConfigurationTest {
 		assertThat(config.isEmpty(), is(false));
 
 		assertThat(config.get(Instant.class, "joined"), equalTo("2016-01-23"));
+	}
+
+	/**
+	 * Test whether {@link SurfConfiguration#sizeInternal()} is working properly.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 * @throws URISyntaxException if there's an error while trying to get an URI.
+	 * @throws IOException if an I/O error occur.
+	 */
+	@Test
+	public void testSizeInternal() throws ConfigurationException, URISyntaxException, IOException {
+		final File configFile = tempFolder.newFile("serializer-empty-configuration-file.surf");
+
+		final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(configFile)).getConfiguration();
+
+		assertThat(config.size(), is(0));
+
+		config.addProperty("name", "Jane Dee");
+
+		assertThat(config.size(), equalTo(1));
+
+		config.addProperty("name", "Jane Doe"); //this call should override the previous value of "name".
+
+		assertThat(config.size(), equalTo(1));
+
+		config.addProperty("name", null); //this call should remove the property.
+
+		assertThat(config.size(), equalTo(0));
+
+		//Tests with properties in the root node.
+
+		{ //tests with SurfObjects
+			final SurfObject userSurfObject = new SurfObject("User");
+			userSurfObject.setPropertyValue("name", "Jane Dee");
+			userSurfObject.setPropertyValue("email", "jane_doe@example.com");
+			userSurfObject.setPropertyValue("phone", "+12015550123");
+
+			config.addProperty("user", userSurfObject);
+		}
+
+		assertThat(config.size(), equalTo(4));
+
+		{ //tests with Maps
+			final Map<String, String> favoriteThingsMap = new HashMap<String, String>();
+
+			favoriteThingsMap.put("5", "User's favorite number.");
+			favoriteThingsMap.put("aliquot", "User's favorite word.");
+
+			config.addProperty("favoriteThings", favoriteThingsMap);
+		}
+
+		assertThat(config.size(), equalTo(7));
+
+		{ //Test with Lists
+			final List<String> favoriteColorsList = Arrays.asList("red", "orange", "yellow", "green", "blue", "indigo", "violet");
+
+			config.addProperty("favoriteColors", favoriteColorsList);
+		}
+
+		assertThat(config.size(), equalTo(8));
+
+		{ //Test with Lists with SurfObjects in it
+			final List<Object> favoriteColorsList = Arrays.asList("red", "orange", "yellow", "green", "blue", "indigo", "violet", new SurfObject(), new SurfObject());
+
+			config.addProperty("favoriteColorsWithSimpleSurfObjects", favoriteColorsList);
+		}
+
+		assertThat(config.size(), equalTo(9));
+
+		{ //Test with Lists with SurfObjects in it
+			final List<Object> favoriteColorsList = Arrays.asList("red", "orange", "yellow", "green", "blue", "indigo", "violet", new SurfObject("DummyObject"),
+					new SurfObject("DummyObject"));
+
+			config.addProperty("favoriteColorsWithNamesSurfObjects", favoriteColorsList);
+		}
+
+		assertThat(config.size(), equalTo(12));
+
+		{ //Test with Sets
+			final Set<String> aliasesSet = Sets.immutableSetOf("jdoe", "janed");
+
+			config.addProperty("aliases", aliasesSet);
+		}
+
+		assertThat(config.size(), equalTo(13));
 	}
 
 }

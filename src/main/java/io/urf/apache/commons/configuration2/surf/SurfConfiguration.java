@@ -667,36 +667,39 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 	}
 
-	/**
-	 * {@inheritDoc}
-	 * 
-	 * Calculates the size of the {@link SurfConfiguration} based only on the number of values stored in it.
-	 * 
-	 * <p>
-	 * As instances of {@link List Lists} and {@link Set Sets} are not navigable, they are counted as a single value.
-	 * </p>
-	 */
 	@Override
 	protected int sizeInternal() {
 		return sizeInternal(getNodeModel().getRootNode());
 	}
 
 	/**
-	 * Recursive method to help with the implementation of {@link #sizeInternal()}.
+	 * Recursive method to help with the implementation of {@link #size()}.
 	 * 
 	 * @param node The node that will be used to check for the size.
 	 * @return The number of child nodes of the given {@link ImmutableNode}. This method considers all the levels below the level of the provided
 	 *         {@link ImmutableNode}.
 	 */
 	private static int sizeInternal(@Nonnull final ImmutableNode node) {
-		if(node.getValue() != null) {
-			return 1;
-		}
-
 		int childCount = 0;
 
+		if(NodeType.SET.equals(node.getAttributes().get(NODE_TYPE_LABEL))) {
+			return childCount;
+		}
+
 		for(final ImmutableNode childNode : node.getChildren()) {
-			childCount += sizeInternal(childNode);
+
+			if(NodeType.LIST.equals(node.getAttributes().get(NODE_TYPE_LABEL))) {
+
+				if(NodeType.SURF_OBJECT.equals(childNode.getAttributes().get(NODE_TYPE_LABEL)) && childNode.getNodeName() != null) {
+					childCount += sizeInternal(childNode) + 1;
+				}
+
+			}
+
+			else {
+				childCount += sizeInternal(childNode) + 1;
+			}
+
 		}
 
 		return childCount;

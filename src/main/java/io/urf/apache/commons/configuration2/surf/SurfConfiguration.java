@@ -42,7 +42,7 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * 
  * <p>
  * If a SURF configuration file is created by an instance of this class, it will be composed by a root {@link SurfObject} with the type name defined as
- * <code>"Configuration"</code>, and every property added to this {@link SurfConfiguration} instance will be a child of this {@link SurfObject}.
+ * {@value #DEFAULT_ROOT_TYPE_NAME}, and every property added to this {@link SurfConfiguration} instance will be a child of this {@link SurfObject}.
  * </p>
  * 
  * i.e.,
@@ -56,7 +56,7 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * </pre>
  * 
  * <p>
- * In order to provide some backward compatibility, a {@link Map} might be used as the root object of the SURF configuration file.
+ * In order to provide some backward compatibility, a {@link Map} may be used as the root object of the SURF configuration file.
  * </p>
  * 
  * i.e.,
@@ -100,7 +100,7 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * </code>
  * </pre>
  * 
- * The hierarchy model provided by Apache is also supported for {@link SurfObject SurfObjects} and {@link Map Maps}. e.g.:
+ * The hierarchy model provided by Apache is also supported for {@link SurfObject SurfObjects} and {@link Map Maps}:
  * 
  * <pre>
  * <code>
@@ -112,12 +112,12 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * 
  * <pre>
  * <code>
- * config.getProperty("MapName.propertyName");
+ * config.getProperty("mapName.propertyName");
  * </code>
  * </pre>
  * 
  * The current implementation has a XML based lookup for {@link List Lists}, what makes it possible to query the items of a {@link List} using {@link SurfObject
- * SurfObject's} type name. <em>This lookup is only supported by {@link SurfObject SurfObjects} that have a type name</em>. e.g.:
+ * SurfObject's} type name. <em>This lookup is only supported by {@link SurfObject SurfObjects} that have a type name</em>:
  * 
  * <pre>
  * <code>
@@ -189,7 +189,7 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * 
  * <pre>
  * <code>
- * config.getProperty("favoriteThings"Boolean.class, "authenticated"); //returns true. <em>If the class would not be provided, a string representation of the value would be returned.</em>
+ * config.getProperty("favoriteThings", Boolean.class, "authenticated"); //returns true. <em>If the class would not be provided, a string representation of the value would be returned.</em>
  * </pre>
  * </code>
  * 
@@ -211,7 +211,7 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * </p>
  * 
  * <p>
- * The SURF document serialized will always be formatter. See {@link SurfSerializer#setFormatted(boolean)}.
+ * The SURF document serialized will always be formatted. See {@link SurfSerializer#setFormatted(boolean)} for more information.
  * </p>
  * 
  * @author Magno N A Cruz
@@ -330,7 +330,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 	/**
 	 * Transform all the hierarchy below the given collection of nodes and add it to the given parent object. The given object needs to be a data structure of the
-	 * type {@link SurfObject}, {@link Map}.
+	 * type {@link SurfObject}, {@link Map}, {@link List} or {@link Set}.
 	 * 
 	 * @param parentStructure The parent data structure object where the child nodes will be added as objects into it.
 	 * @param childrenNodes The children nodes to be transformed to objects and be added to its parent data structure.
@@ -384,7 +384,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	}
 
 	/**
-	 * Transform the given {@link SurfObject} or {@link Map} object and all the hierarchy below that.
+	 * Transform the given object and all the hierarchy below that.
 	 * 
 	 * @param rootObject The root object to be converted to a hierarchy of {@link ImmutableNode ImmutableNodes}.
 	 * 
@@ -468,8 +468,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	 * {@inheritDoc}
 	 * 
 	 * <p>
-	 * This implementation is the same as {@link BaseHierarchicalConfiguration#setProperty(String, Object)} in order to not accept duplicated keys in the same
-	 * level.
+	 * This implementation delegates to {@link #setPropertyInternal(String, Object)} in order to not accept duplicated keys in the same level.
 	 * </p>
 	 */
 	@Override
@@ -482,15 +481,15 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	 * <p>
 	 * If the object provided is one of the data structures supported by this implementation, it manually converts and adds it to the hierarchy, otherwise, this
 	 * method just delegates to {@link AbstractHierarchicalConfiguration#setPropertyInternal(String, Object)}.
+	 * </p>
 	 * 
 	 * <strong>The support for addition of properties by the use of index <code>(-1)</code> is not yet implemented.</strong>
-	 * </p>
 	 */
 	@Override
 	protected void setPropertyInternal(@Nonnull String key, @Nullable Object obj) {
 		requireNonNull(key, "The key of the object to be added to the configuration must not be <null>.");
 
-		if(!NodeType.isCompatible(obj)) {
+		if(!NodeType.isNavigable(obj)) {
 			super.setPropertyInternal(key, obj); //if the default implementation handles with the type of the given object properly, we just delegate to it.
 
 			//fixNodeProperties(key); introduce it again when index (-1) is enabled.
@@ -503,10 +502,11 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 		final ImmutableNode.Builder nodeBuilder = createHierarchy(obj);
 
 		if(key.contains(DEFAULT_PROPERTY_DELIMITER)) {
-			String parentKey = key.substring(0, key.lastIndexOf(DEFAULT_PROPERTY_DELIMITER));
-			String newNodeKey = key.substring(key.lastIndexOf(DEFAULT_PROPERTY_DELIMITER) + 1, key.length());
+			final String parentKey = key.substring(0, key.lastIndexOf(DEFAULT_PROPERTY_DELIMITER));
 
-			HierarchicalConfiguration<ImmutableNode> subHierarchy = configurationAt(parentKey, true);
+			final HierarchicalConfiguration<ImmutableNode> subHierarchy = configurationAt(parentKey, true);
+
+			String newNodeKey = key.substring(key.lastIndexOf(DEFAULT_PROPERTY_DELIMITER) + 1, key.length());
 
 			ImmutableNode subHierarchyRootNode = subHierarchy.getNodeModel().getNodeHandler().getRootNode();
 
@@ -556,6 +556,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 				if(keyExists) {
 					for(final ImmutableNode child : childrenNodes) {
+
 						if(child.getNodeName().equals(newNodeKey)) {
 							newChildrenNodes.add(nodeBuilder.name(newNodeKey).create());
 						} else {
@@ -649,7 +650,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 	@Override
 	protected Object getPropertyInternal(@Nonnull final String key) {
-		List<QueryResult<ImmutableNode>> queryResults = fetchNodeList(key);
+		final List<QueryResult<ImmutableNode>> queryResults = fetchNodeList(key);
 
 		if(queryResults.isEmpty()) {
 			return null;
@@ -720,7 +721,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	}
 
 	/**
-	 * Enum created to represent the node types supported by a SURF document.
+	 * Enum created to represent the node types navigable by a SURF document.
 	 * 
 	 * @author Magno N A Cruz
 	 */
@@ -756,7 +757,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 		 * @param obj The object that needs to be represented by an instance of this class.
 		 * @return {@code true} if {@link NodeType} has an instance for the type of the object provided, {@link false} if not.
 		 */
-		public static boolean isCompatible(@Nullable final Object obj) {
+		public static boolean isNavigable(@Nullable final Object obj) {
 
 			if(obj instanceof SurfObject || obj instanceof Map || obj instanceof List || obj instanceof Set) {
 				return true;

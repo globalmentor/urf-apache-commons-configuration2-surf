@@ -42,10 +42,8 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * 
  * <p>
  * If a SURF configuration file is created by an instance of this class, it will be composed by a root {@link SurfObject} with the type name defined as
- * {@value #DEFAULT_ROOT_TYPE_NAME}, and every property added to this {@link SurfConfiguration} instance will be a child of this {@link SurfObject}.
+ * {@value #DEFAULT_ROOT_TYPE_NAME}, and every property added to this {@link SurfConfiguration} instance will be a child of this {@link SurfObject}. i.e.:
  * </p>
- * 
- * i.e.,
  * 
  * <pre>
  * *Configuration:
@@ -56,10 +54,8 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * </pre>
  * 
  * <p>
- * In order to provide some backward compatibility, a {@link Map} may be used as the root object of the SURF configuration file.
+ * In order to provide some backward compatibility, a {@link Map} may be used as the root object of the SURF configuration file. i.e.:
  * </p>
- * 
- * i.e.,
  * 
  * <pre>
  * {
@@ -76,6 +72,7 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * 
  * <p>
  * An instance of {@link SurfConfiguration} may be gotten by using the following statement:
+ * </p>
  * 
  * <pre>
  * <code>
@@ -84,7 +81,9 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * </code>
  * </pre>
  * 
+ * <p>
  * To add properties there is the following statement:
+ * </p>
  * 
  * <pre>
  * <code>
@@ -92,7 +91,9 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * </code>
  * </pre>
  * 
+ * <p>
  * To get properties there is the following statement:
+ * </p>
  * 
  * <pre>
  * <code>
@@ -100,7 +101,9 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * </code>
  * </pre>
  * 
+ * <p>
  * The hierarchy model provided by Apache is also supported for {@link SurfObject SurfObjects} and {@link Map Maps}:
+ * </p>
  * 
  * <pre>
  * <code>
@@ -108,7 +111,9 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * </code>
  * </pre>
  * 
+ * <p>
  * or
+ * </p>
  * 
  * <pre>
  * <code>
@@ -116,8 +121,10 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * </code>
  * </pre>
  * 
- * The current implementation has a XML based lookup for {@link List Lists}, what makes it possible to query the items of a {@link List} using {@link SurfObject
- * SurfObject's} type name. <em>This lookup is only supported by {@link SurfObject SurfObjects} that have a type name</em>:
+ * <p>
+ * The current implementation lookup has a behave similar to the one of {@link XMLConfiguration}, what makes it possible to query the items of a {@link List}
+ * using {@link SurfObject SurfObject's} type name. <em>This lookup is only supported by {@link SurfObject SurfObjects} that have a type name</em>:
+ * </p>
  * 
  * <pre>
  * <code>
@@ -125,7 +132,9 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * </code>
  * </pre>
  * 
+ * <p>
  * Here is an example of SURF file and how we would use the methods above:
+ * </p>
  * 
  * <pre>
  * <code>
@@ -176,8 +185,61 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * </code>
  * </pre>
  * 
+ * <pre>
+ * <code>
+ * {
+ *   authenticated : true
+ *   sort : 'd'
+ *   name : "Jane Doe"
+ *   id : &bb8e7dbe-f0b4-4d94-a1cf-46ed0e920832
+ *   email : ^jane_doe@example.com
+ *   phone : +12015550123
+ *   aliases : [
+ *     "jdoe"
+ *     "janed"
+ *   ]
+ *   homePage : <http://www.example.com/jdoe/>
+ *   salt : %Zm9vYmFy
+ *   joined : @2016-01-23,
+ *   credits : 123
+ *   favoriteThings : {
+ *     "aliquot" : "User's favorite word."
+ *     "amethyst" : "User's favorite stone."
+ *   }
+ *   !the list of colors said to make up the spectrum of a rainbow, in order
+ *   rainbow : [
+ *     *Color: 
+ *       name = "red"
+ *     ;
+ *     *Color: 
+ *       name = "orange"
+ *     ;
+ *     *Color: 
+ *       name = "yellow"
+ *     ;
+ *     *Color: 
+ *       name = "green"
+ *     ;
+ *     *Color: 
+ *       name = "blue"
+ *     ;
+ *     *Color: 
+ *       name = "indigo"
+ *     ;
+ *     *Color: 
+ *       name = "violet"
+ *     ;
+ *   ]
+ * }
+ * </code>
+ * </pre>
+ * 
+ * <em> The following examples should work for both types of {@link SurfConfiguration}, the one with a {@link SurfObject}, and the one with a {@link Map} as
+ * root object. </em>
+ * 
  * <p>
  * Here is an example of how to get a simple string property:
+ * </p>
  * 
  * <pre>
  * <code>
@@ -185,7 +247,9 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * </pre>
  * </code>
  * 
+ * <p>
  * To get a property in its specific class, the class must be provided to the following method:
+ * </p>
  * 
  * <pre>
  * <code>
@@ -193,7 +257,9 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * </pre>
  * </code>
  * 
+ * <p>
  * Here is an example of how to get a property in a lower level in the hierarchy:
+ * </p>
  * 
  * <pre>
  * <code>
@@ -201,14 +267,15 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * </pre>
  * </code>
  * 
+ * <p>
  * Here is an example of how to make a lookup in a {@link List}:
+ * </p>
  * 
  * <pre>
  * <code>
  * config.getProperty("rainbow.Color(5)"); //returns "indigo". <em>The lookup is zero-based, and it only works with {@link SurfObject SurfObjects} with their type names properly set up.</em>
  * </pre>
  * </code>
- * </p>
  * 
  * <p>
  * The SURF document serialized will always be formatted. See {@link SurfSerializer#setFormatted(boolean)} for more information.
@@ -342,7 +409,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	 */
 	@SuppressWarnings("unchecked")
 	private static Object toObject(@Nonnull final Object parentStructure, @Nullable final List<ImmutableNode> childrenNodes) {
-		requireNonNull(parentStructure, "The provided parent data structure object might not be <null>.");
+		requireNonNull(parentStructure, "The provided parent data structure object must not be <null>.");
 		requireNonNull(childrenNodes, "The provided list of children nodes might not be <null>.");
 
 		for(final ImmutableNode childNode : childrenNodes) {
@@ -573,6 +640,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 			}
 
+			//TODO This code is part of a draft for implementing the lookup using index (-1), it must be implemented or deleted in the future.
 			//			if(parentKey.contains(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END))) {
 			//				final String splittedKey = key.split(DEFAULT_PROPERTY_DELIMITER)[key.length() - 2];
 			//
@@ -599,7 +667,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 	}
 
-	//	//TODO JAVADOCS AND FINISH IMPLEMENTATION
+	//TODO This code is part of a draft for implementing the lookup using index (-1), it must be implemented or deleted in the future.
 	//	private void fixNodeProperties(@Nonnull String key) {
 	//
 	//		if(key.contains(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END))) {

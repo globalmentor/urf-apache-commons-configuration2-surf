@@ -551,10 +551,15 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	 * </p>
 	 * 
 	 * <strong>The support for addition of properties by the use of index <code>(-1)</code> is not yet implemented.</strong>
+	 * @throws UnsupportedOperationException If a key with the index <code>-1</code> is provided as arguments of this method.
 	 */
 	@Override
 	protected void setPropertyInternal(@Nonnull String key, @Nullable Object obj) {
 		requireNonNull(key, "The key of the object to be added to the configuration must not be <null>.");
+
+		if(key.contains(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END))) {
+			throw new UnsupportedOperationException("Adding properties using (-1) index is not yet supported.");
+		}
 
 		if(!NodeType.isNavigable(obj)) {
 			super.setPropertyInternal(key, obj); //if the default implementation handles with the type of the given object properly, we just delegate to it.

@@ -590,9 +590,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 				}
 			}
 
-			if(subHierarchyParentNode == null) {
-				throw new AssertionError("The node to be replaced shouldn't be null at this point.");
-			}
+			assert subHierarchyParentNode != null : "The parent node of the property key provided should not be null.";
 
 			final List<ImmutableNode> childrenNodes = subHierarchyParentNode.getChildren();
 

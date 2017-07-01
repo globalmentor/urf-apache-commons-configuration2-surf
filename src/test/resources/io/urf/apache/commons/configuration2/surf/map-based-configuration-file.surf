@@ -1,0 +1,12 @@
+{
+	"authenticated" : true
+	"sort" : 'd'
+	"name" : "Jane Doe"
+	"account" : "jane_doe@example.com"
+	"id" : &bb8e7dbe-f0b4-4d94-a1cf-46ed0e920832
+	"aliases" : ("jdoe", "janed")
+	"homePage" : <http://www.example.com/jdoe/>
+	"salt" : %Zm9vYmFy
+	"joined" : @2016-01-23
+	"credits" : 123
+}

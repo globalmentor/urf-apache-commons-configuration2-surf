@@ -10,7 +10,7 @@
 
 	<name>Apache Commons SURF Configuration</name>
 	<description>SURF configuration implementation for the Apache Commons Configuration 2.x library.</description>
-	<url>http://urf.io/surf/</url>
+	<url>https://urf.io/surf/</url>
 	<inceptionYear>2017</inceptionYear>
 
 	<licenses>

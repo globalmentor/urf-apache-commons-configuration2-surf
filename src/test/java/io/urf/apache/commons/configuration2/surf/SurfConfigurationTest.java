@@ -333,7 +333,7 @@ public class SurfConfigurationTest {
 		assertThat(config.isEmpty(), is(true));
 
 		assertThat(((SurfObject)config.getSurfDocument()).getTypeName(), equalTo(Optional.empty()));
-		assertThat(((SurfObject)config.getSurfDocument()).getIri(), equalTo(Optional.empty()));
+		assertThat(((SurfObject)config.getSurfDocument()).getTag(), equalTo(Optional.empty()));
 	}
 
 	/**

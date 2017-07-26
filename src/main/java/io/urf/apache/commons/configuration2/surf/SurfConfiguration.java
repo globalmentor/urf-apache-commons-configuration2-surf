@@ -490,7 +490,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 			if(childNodeValue instanceof SurfObject) {
 				((SurfObject)childNodeValue).getTypeName().ifPresent(typeName -> childNodeBuilder.addAttribute(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL, typeName));
-				((SurfObject)childNodeValue).getIri().ifPresent(iri -> childNodeBuilder.addAttribute(SURF_OBJECT_IRI_ATTRIBUTE_LABEL, iri));
+				((SurfObject)childNodeValue).getTag().ifPresent(iri -> childNodeBuilder.addAttribute(SURF_OBJECT_IRI_ATTRIBUTE_LABEL, iri));
 
 				((SurfObject)childNodeValue).getPropertyNameValuePairs().forEach(entry -> entries.add(new NameValuePairMapEntry<String, Object>(entry)));
 			}

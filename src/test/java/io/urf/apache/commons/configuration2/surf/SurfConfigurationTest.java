@@ -40,8 +40,6 @@ import java.time.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -221,16 +219,10 @@ public class SurfConfigurationTest {
 			assertThat(config.getProperty("favoriteColors"), equalTo(favoriteColorsList));
 
 			config.addProperty("favoriteColors.Color(0).name", "red");
-			config.addProperty("favoriteColors.dummyString",
-					"This object makes sure that the index lookup will not be affected by other objects with different names.");
 			config.addProperty("favoriteColors.Color(1).name", "orange");
-			config.addProperty("favoriteColors.dummySurfObject", new SurfObject());
 			config.addProperty("favoriteColors.Color(2).name", "yellow");
-			config.addProperty("favoriteColors.dummyMap", new HashMap<>());
 			config.addProperty("favoriteColors.Color(3).name", "green");
-			config.addProperty("favoriteColors.dummyList", new LinkedList<>());
 			config.addProperty("favoriteColors.Color(4).name", "blue");
-			config.addProperty("favoriteColors.dummySet", new HashSet<>());
 			config.addProperty("favoriteColors.Color(5).name", "violet");
 
 			assertThat(config.getProperty("favoriteColors.Color(0).name"), equalTo("red"));
@@ -251,25 +243,30 @@ public class SurfConfigurationTest {
 
 			assertThat(config.getProperty("favoriteColors"), not(equalTo(favoriteColorsList)));
 
-			assertThat(config.getProperty("favoriteColors.Color"), not(equalTo(favoriteColorsList)));
-
 			config.addProperty("favoriteColors.Color(5)", favoriteColorsList.get(5));
 
 			assertThat(config.getProperty("favoriteColors.Color(5).name"), equalTo("indigo"));
+			assertThat(config.getProperty("favoriteColors"), equalTo(favoriteColorsList));
 
-			assertThat(config.getProperty("favoriteColors.Color"), equalTo(favoriteColorsList));
+			config.addProperty("favoriteColors.Color(-1)", new SurfObject("Color"));
+			config.addProperty("favoriteColors.Color(6).name", "violet");
 
-			//config.addProperty("favoriteColors.Color(-1).name", "violet");
+			final SurfObject violetColorSurfObject = new SurfObject("Color");
 
-			//assertThat(config.getProperty("favoriteColors.Color(6).name"), equalTo("violet"));
+			violetColorSurfObject.setPropertyValue("name", "violet");
 
-			//final SurfObject violetColorSurfObject = new SurfObject("Color");
+			favoriteColorsList.add(violetColorSurfObject);
 
-			//violetColorSurfObject.setPropertyValue("name", "violet");
+			assertThat(config.getProperty("favoriteColors"), equalTo(favoriteColorsList));
 
-			//favoriteColorsList.add(violetColorSurfObject);
+			config.addProperty("favoriteColors.Color(-1).name", "white");
 
-			//assertThat(config.getProperty("favoriteColors"), equalTo(favoriteColorsList));
+			final SurfObject whiteColorSurfObject = new SurfObject("Color");
+			whiteColorSurfObject.setPropertyValue("name", "white");
+
+			favoriteColorsList.add(whiteColorSurfObject);
+
+			assertThat(config.getProperty("favoriteColors"), equalTo(favoriteColorsList));
 		}
 
 	}

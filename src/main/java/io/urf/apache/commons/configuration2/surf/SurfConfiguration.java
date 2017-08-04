@@ -550,21 +550,25 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	 * method just delegates to {@link AbstractHierarchicalConfiguration#setPropertyInternal(String, Object)}.
 	 * </p>
 	 * 
-	 * <strong>The support for addition of properties by the use of index <code>(-1)</code> is not yet implemented.</strong>
-	 * @throws UnsupportedOperationException If a key with the index <code>-1</code> is provided as arguments of this method.
+	 * <strong>The use of index <code>(-1)</code> is supported only for creation of {@link SurfObject SurfObjects}.</strong> <em>Also, the use of index
+	 * <code>(-1)</code> to create a new instance of {@link SurfObject} and add a property that's of one of the types listed in {@link NodeType} is not yet
+	 * supported.</em>
+	 * 
+	 * @throws UnsupportedOperationException If a key with the index <code>-1</code> is provided to create a new {@link SurfObject} and add a property of the type
+	 *           listed in {@link NodeType} in the same call.
 	 */
 	@Override
-	protected void setPropertyInternal(@Nonnull String key, @Nullable Object obj) {
+	protected void setPropertyInternal(@Nonnull final String key, @Nullable final Object obj) {
 		requireNonNull(key, "The key of the object to be added to the configuration must not be <null>.");
 
-		if(key.contains(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END))) {
-			throw new UnsupportedOperationException("Adding properties using (-1) index is not yet supported.");
+		if(key.endsWith(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END)) && !(obj instanceof SurfObject)) {
+			throw new IllegalArgumentException("The index (-1) is only used to represent SurfObjects in a list.");
 		}
 
 		if(!NodeType.isNavigable(obj)) {
 			super.setPropertyInternal(key, obj); //if the default implementation handles with the type of the given object properly, we just delegate to it.
 
-			//fixNodeProperties(key); introduce it again when index (-1) is enabled.
+			fixInternalNodes(key);
 
 			return;
 		}
@@ -573,21 +577,26 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 		final ImmutableNode.Builder nodeBuilder = createHierarchy(obj);
 
-		if(key.contains(DEFAULT_PROPERTY_DELIMITER)) {
+		if(key.contains(DEFAULT_PROPERTY_DELIMITER)) { //if the given object must be inserted in a lower level in the hierarchy.
 			final String parentKey = key.substring(0, key.lastIndexOf(DEFAULT_PROPERTY_DELIMITER));
+
+			if(parentKey.contains(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END)) && NodeType.isNavigable(obj)) {
+				throw new UnsupportedOperationException(
+						"The use of index (-1) to create a new instance of {@link SurfObject} and add a property that's of one of the types listed in NodeType is not yet supported.");
+			}
 
 			final HierarchicalConfiguration<ImmutableNode> subHierarchy = configurationAt(parentKey, true);
 
 			String newNodeKey = key.substring(key.lastIndexOf(DEFAULT_PROPERTY_DELIMITER) + 1, key.length());
 
-			ImmutableNode subHierarchyRootNode = subHierarchy.getNodeModel().getNodeHandler().getRootNode();
+			ImmutableNode subHierarchyRootNode = subHierarchy.getNodeModel().getNodeHandler().getRootNode(); //a new node is created to be the root of this sub-hierarchy.
 
-			ImmutableNode subHierarchyParentNode = null;
+			final ImmutableNode subHierarchyParentNode = subHierarchyRootNode.getChildren().iterator().next(); //the only node in this sub-hierarchy should be the parent node of the given key.
 
-			for(ImmutableNode node : subHierarchyRootNode.getChildren()) {
-				if(node.getNodeName().equals(parentKey)) {
-					subHierarchyParentNode = node;
-				}
+			if(newNodeKey.contains(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END))) {
+				final String newNodeName = newNodeKey.split(String.format("\\%s", DEFAULT_INDEX_START))[0];
+
+				nodeBuilder.name(newNodeName);
 			}
 
 			assert subHierarchyParentNode != null : "The parent node of the property key provided should not be null.";
@@ -599,7 +608,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 			if(newNodeKey.contains(DEFAULT_INDEX_START)) {
 				Conditions.checkArgument(obj instanceof SurfObject, "Indexes are only supported with SurfObject instances.");
 
-				int lookupIndex = Integer.parseInt(newNodeKey.substring(newNodeKey.indexOf(DEFAULT_INDEX_START) + 1, newNodeKey.indexOf(DEFAULT_INDEX_END)));
+				final int lookupIndex = Integer.parseInt(newNodeKey.substring(newNodeKey.indexOf(DEFAULT_INDEX_START) + 1, newNodeKey.indexOf(DEFAULT_INDEX_END)));
 
 				newNodeKey = newNodeKey.substring(0, newNodeKey.indexOf(DEFAULT_INDEX_START));
 
@@ -619,6 +628,10 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 						newChildrenNodes.add(child);
 					}
 
+				}
+
+				if(lookupIndex == -1) {
+					newChildrenNodes.add(nodeBuilder.create());
 				}
 
 				subHierarchyRootNode = subHierarchyRootNode.replaceChild(subHierarchyParentNode, subHierarchyParentNode.replaceChildren(newChildrenNodes));
@@ -643,14 +656,6 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 			}
 
-			//TODO This code is part of a draft for implementing the lookup using index (-1), it must be implemented or deleted in the future.
-			//			if(parentKey.contains(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END))) {
-			//				final String splittedKey = key.split(DEFAULT_PROPERTY_DELIMITER)[key.length() - 2];
-			//
-			//				parentNode = parentNode.setAttribute(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL, NodeType.SURF_OBJECT);
-			//				parentNode = parentNode.setName(splittedKey.substring(0, splittedKey.length() - 3));
-			//			}
-
 			subHierarchy.getNodeModel().setRootNode(subHierarchyRootNode);
 		} else {
 			final ImmutableNode parentNode = getNodeModel().getRootNode();
@@ -670,54 +675,62 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 	}
 
-	//TODO This code is part of a draft for implementing the lookup using index (-1), it must be implemented or deleted in the future.
-	//	private void fixNodeProperties(@Nonnull String key) {
-	//
-	//		if(key.contains(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END))) {
-	//
-	//			final String keyWithoutIndex = key.substring(0, key.lastIndexOf(String.format("%s-1%s.", DEFAULT_INDEX_START, DEFAULT_INDEX_END)));
-	//			final HierarchicalConfiguration<ImmutableNode> parentNodeHierarchy;
-	//
-	//			List<ImmutableNode> childrenNodes;
-	//
-	//			if(keyWithoutIndex.contains(DEFAULT_PROPERTY_DELIMITER)) {
-	//				parentNodeHierarchy = configurationAt(keyWithoutIndex.substring(keyWithoutIndex.indexOf("."), keyWithoutIndex.lastIndexOf(".")), true);
-	//				childrenNodes = parentNodeHierarchy.getNodeModel().getNodeHandler().getRootNode().getChildren();
-	//				for(int i = 0; i < childrenNodes.size(); i++) {
-	//					if(childrenNodes.get(i).getNodeName().equals(keyWithoutIndex.substring(keyWithoutIndex.indexOf("."), keyWithoutIndex.lastIndexOf(".")))) {
-	//						childrenNodes = Arrays.asList(childrenNodes.get(i));
-	//					}
-	//				}
-	//			} else {
-	//				parentNodeHierarchy = (HierarchicalConfiguration<ImmutableNode>)this;
-	//				childrenNodes = parentNodeHierarchy.getNodeModel().getNodeHandler().getRootNode().getChildren();
-	//			}
-	//
-	//			for(ImmutableNode childNode : childrenNodes) {
-	//				if(childNode.getNodeName().equals(key.substring(key.lastIndexOf(DEFAULT_PROPERTY_DELIMITER), key.length())) && childNode.getAttributes().isEmpty()) {
-	//					parentNodeHierarchy.getNodeModel().setRootNode(parentNodeHierarchy.getNodeModel().getNodeHandler().getRootNode().replaceChild(childNode,
-	//							childNode.setAttribute(NODE_TYPE_LABEL, NodeType.SURF_OBJECT)));
-	//
-	//					parentNodeHierarchy.getNodeModel().setRootNode(parentNodeHierarchy.getNodeModel().getNodeHandler().getRootNode().replaceChild(childNode,
-	//							childNode.setAttribute(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL, key.substring(key.lastIndexOf(DEFAULT_PROPERTY_DELIMITER), key.length()))));
-	//				}
-	//			}
-	//
-	//			//elementsWithoutNodeTypeAttribute.forEach(hierarchy -> hierarchy.getNodeModel()
-	//			//		.setRootNode(hierarchy.getNodeModel().getNodeHandler().getRootNode().setAttribute(NODE_TYPE_LABEL, NodeType.SURF_OBJECT)));
-	//
-	//			//			.forEach(hierarchy -> {
-	//			//
-	//			//				if(!hierarchy.getNodeModel().getNodeHandler().getRootNode().getAttributes().containsKey(NODE_TYPE_LABEL)) {
-	//			//					hierarchy.getNodeModel()
-	//			//							.setRootNode(hierarchy.getNodeModel().getNodeHandler().getRootNode().setAttribute(NODE_TYPE_LABEL, NavigableNodeType.SURF_OBJECT));
-	//			//				}
-	//			//
-	//			//			});
-	//
-	//		}
-	//
-	//	}
+	/**
+	 * Helper method created to fix the {@link SurfObject SurfObjects} recently created using index <code>(-1)</code>.
+	 * 
+	 * @param key The key used to create the property.
+	 */
+	private void fixInternalNodes(@Nonnull final String key) {
+		Conditions.checkArgumentNotNull(key, "The key must not be null.");
+
+		if(key.contains(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END))) {
+			String[] splittedKey = key.split("\\.");
+
+			String parentKey = null;
+			String nodeKey = null;
+
+			for(int i = 0; i < splittedKey.length; i++) {
+				if(splittedKey[i].contains(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END))) {
+					parentKey = key.substring(0, key.indexOf(splittedKey[i]) - 1);
+					nodeKey = splittedKey[i].substring(0, splittedKey[i].indexOf(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END)));
+				}
+			}
+
+			final HierarchicalConfiguration<ImmutableNode> subHierarchy = configurationAt(parentKey, true);
+
+			final ImmutableNode rootNode = subHierarchy.getNodeModel().getNodeHandler().getRootNode();
+
+			ImmutableNode parentNode = null;
+
+			for(final ImmutableNode node : rootNode.getChildren()) {
+				if(node.getNodeName().equals(parentKey)) {
+					parentNode = node;
+				}
+			}
+
+			List<ImmutableNode> nodesToCheck = parentNode.getChildren();
+
+			List<ImmutableNode> newChildrenNodes = new ArrayList<ImmutableNode>();
+
+			for(final ImmutableNode node : nodesToCheck) {
+
+				if(node.getNodeName().equals(nodeKey)) {
+
+					if(!node.getAttributes().containsKey(NODE_TYPE_LABEL)) {
+						newChildrenNodes
+								.add(node.setName(nodeKey).setAttribute(NODE_TYPE_LABEL, NodeType.SURF_OBJECT).setAttribute(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL, nodeKey));
+						continue;
+					}
+
+				}
+
+				newChildrenNodes.add(node);
+			}
+
+			subHierarchy.getNodeModel().setRootNode(rootNode.replaceChild(parentNode, parentNode.replaceChildren(newChildrenNodes)));
+		}
+
+	}
 
 	@Override
 	protected Object getPropertyInternal(@Nonnull final String key) {

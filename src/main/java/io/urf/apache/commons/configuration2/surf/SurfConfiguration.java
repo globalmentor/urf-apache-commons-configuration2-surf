@@ -28,7 +28,6 @@ import org.apache.commons.configuration2.io.FileHandler;
 import org.apache.commons.configuration2.tree.*;
 
 import com.globalmentor.collections.NameValuePairMapEntry;
-import com.globalmentor.java.Conditions;
 
 import io.urf.surf.parser.*;
 import io.urf.surf.serializer.*;
@@ -277,6 +276,12 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * </pre>
  * </code>
  * 
+ * <pre>
+ * <code>
+ * config.getProperty("rainbow.Color(-1)"); //creates a new empty {@link SurfObject}.
+ * </pre>
+ * </code>
+ * 
  * <p>
  * The SURF document serialized will always be formatted. See {@link SurfSerializer#setFormatted(boolean)} for more information.
  * </p>
@@ -458,7 +463,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	 * @return The object provided and all its hierarchy below represented by {@link ImmutableNode ImmutableNodes}.
 	 * @throws IllegalArgumentException If the given parent structure is not an instance of {@link SurfObject} or {@link Map}.
 	 */
-	public static ImmutableNode.Builder createHierarchy(@Nonnull final Object rootObject) {
+	private static ImmutableNode.Builder createHierarchy(@Nonnull final Object rootObject) {
 		requireNonNull(rootObject, "The given object must not be <null>.");
 
 		return createHierarchy(null, Arrays.asList(new NameValuePairMapEntry<String, Object>(null, rootObject)));
@@ -550,186 +555,150 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	 * method just delegates to {@link AbstractHierarchicalConfiguration#setPropertyInternal(String, Object)}.
 	 * </p>
 	 * 
-	 * <strong>The use of index <code>(-1)</code> is supported only for creation of {@link SurfObject SurfObjects}.</strong> <em>Also, the use of index
-	 * <code>(-1)</code> to create a new instance of {@link SurfObject} and add a property that's of one of the types listed in {@link NodeType} is not yet
-	 * supported.</em>
+	 * <strong>The use of index <code>(-1)</code> is supported only for creation of {@link SurfObject SurfObjects}.</strong>
 	 * 
-	 * @throws UnsupportedOperationException If a key with the index <code>-1</code> is provided to create a new {@link SurfObject} and add a property of the type
-	 *           listed in {@link NodeType} in the same call.
+	 * @throws IllegalArgumentException If a non existing key is given in one of the middle levels on the hierarchy.
+	 * @throws NoSuchElementException If an indexed key is provided for an object that exists in the hierarchy, but does not have an entry for the given index.
 	 */
 	@Override
 	protected void setPropertyInternal(@Nonnull final String key, @Nullable final Object obj) {
 		requireNonNull(key, "The key of the object to be added to the configuration must not be <null>.");
 
-		if(key.endsWith(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END)) && !(obj instanceof SurfObject)) {
-			throw new IllegalArgumentException("The index (-1) is only used to represent SurfObjects in a list.");
-		}
-
-		if(!NodeType.isNavigable(obj)) {
-			super.setPropertyInternal(key, obj); //if the default implementation handles with the type of the given object properly, we just delegate to it.
-
-			fixInternalNodes(key);
-
-			return;
-		}
-
-		final boolean keyExists = containsKey(key);
-
-		final ImmutableNode.Builder nodeBuilder = createHierarchy(obj);
-
-		if(key.contains(DEFAULT_PROPERTY_DELIMITER)) { //if the given object must be inserted in a lower level in the hierarchy.
-			final String parentKey = key.substring(0, key.lastIndexOf(DEFAULT_PROPERTY_DELIMITER));
-
-			if(parentKey.contains(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END)) && NodeType.isNavigable(obj)) {
-				throw new UnsupportedOperationException(
-						"The use of index (-1) to create a new instance of {@link SurfObject} and add a property that's of one of the types listed in NodeType is not yet supported.");
-			}
-
-			final HierarchicalConfiguration<ImmutableNode> subHierarchy = configurationAt(parentKey, true);
-
-			String newNodeKey = key.substring(key.lastIndexOf(DEFAULT_PROPERTY_DELIMITER) + 1, key.length());
-
-			ImmutableNode subHierarchyRootNode = subHierarchy.getNodeModel().getNodeHandler().getRootNode(); //a new node is created to be the root of this sub-hierarchy.
-
-			final ImmutableNode subHierarchyParentNode = subHierarchyRootNode.getChildren().iterator().next(); //the only node in this sub-hierarchy should be the parent node of the given key.
-
-			if(newNodeKey.contains(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END))) {
-				final String newNodeName = newNodeKey.split(String.format("\\%s", DEFAULT_INDEX_START))[0];
-
-				nodeBuilder.name(newNodeName);
-			}
-
-			assert subHierarchyParentNode != null : "The parent node of the property key provided should not be null.";
-
-			final List<ImmutableNode> childrenNodes = subHierarchyParentNode.getChildren();
-
-			final List<ImmutableNode> newChildrenNodes = new LinkedList<ImmutableNode>();
-
-			if(newNodeKey.contains(DEFAULT_INDEX_START)) {
-				Conditions.checkArgument(obj instanceof SurfObject, "Indexes are only supported with SurfObject instances.");
-
-				final int lookupIndex = Integer.parseInt(newNodeKey.substring(newNodeKey.indexOf(DEFAULT_INDEX_START) + 1, newNodeKey.indexOf(DEFAULT_INDEX_END)));
-
-				newNodeKey = newNodeKey.substring(0, newNodeKey.indexOf(DEFAULT_INDEX_START));
-
-				int lookupCount = 0;
-
-				for(final ImmutableNode child : childrenNodes) {
-
-					if(child.getNodeName().equals(newNodeKey)) {
-						if(lookupCount == lookupIndex) {
-							newChildrenNodes.add(nodeBuilder.name(newNodeKey).create());
-						} else {
-							newChildrenNodes.add(child);
-						}
-
-						lookupCount++;
-					} else {
-						newChildrenNodes.add(child);
-					}
-
-				}
-
-				if(lookupIndex == -1) {
-					newChildrenNodes.add(nodeBuilder.create());
-				}
-
-				subHierarchyRootNode = subHierarchyRootNode.replaceChild(subHierarchyParentNode, subHierarchyParentNode.replaceChildren(newChildrenNodes));
-			} else {
-
-				if(keyExists) {
-					for(final ImmutableNode child : childrenNodes) {
-
-						if(child.getNodeName().equals(newNodeKey)) {
-							newChildrenNodes.add(nodeBuilder.name(newNodeKey).create());
-						} else {
-							newChildrenNodes.add(child);
-						}
-
-					}
-
-					subHierarchyRootNode = subHierarchyRootNode.replaceChild(subHierarchyParentNode, subHierarchyParentNode.replaceChildren(newChildrenNodes));
-				} else {
-					subHierarchyRootNode = subHierarchyRootNode.replaceChild(subHierarchyParentNode,
-							subHierarchyParentNode.addChild(nodeBuilder.name(newNodeKey).create()));
-				}
-
-			}
-
-			subHierarchy.getNodeModel().setRootNode(subHierarchyRootNode);
+		if(obj != null) {
+			getNodeModel().setRootNode(setPropertyInternal(key, createHierarchy(obj)));
 		} else {
-			final ImmutableNode parentNode = getNodeModel().getRootNode();
-
-			if(keyExists) {
-
-				for(final ImmutableNode childNode : parentNode.getChildren()) {
-					if(childNode.getNodeName().equals(key)) {
-						getNodeModel().setRootNode(parentNode.replaceChild(childNode, nodeBuilder.name(key).create()));
-					}
-				}
-
-			} else {
-				getNodeModel().setRootNode(parentNode.addChild(nodeBuilder.name(key).create()));
-			}
+			getNodeModel().setRootNode(setPropertyInternal(key, null));
 		}
 
 	}
 
 	/**
-	 * Helper method created to fix the {@link SurfObject SurfObjects} recently created using index <code>(-1)</code>.
+	 * This is a helper method that manually inserts the given object at the corresponding key in the tree.
 	 * 
-	 * @param key The key used to create the property.
+	 * @param key The key that the object will be inserted/updated/deleted.
+	 * @param newNodeBuilder The new node that will be inserted. {@code null} if the node must be deleted.
+	 * 
+	 * @return The parent node updated with the given key.
+	 * 
+	 * @throws IllegalArgumentException If a non existing key is given in one of the middle levels on the hierarchy.
+	 * @throws NoSuchElementException If an indexed key is provided for an object that exists in the hierarchy, but does not have an entry for the given index.
 	 */
-	private void fixInternalNodes(@Nonnull final String key) {
-		Conditions.checkArgumentNotNull(key, "The key must not be null.");
+	private ImmutableNode setPropertyInternal(@Nonnull final String key, @Nullable final ImmutableNode.Builder newNodeBuilder) {
+		return setPropertyInternal(key, newNodeBuilder, getNodeModel().getNodeHandler().getRootNode(), 0);
+	}
 
-		if(key.contains(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END))) {
-			String[] splittedKey = key.split("\\.");
+	/**
+	 * This is a helper method that manually inserts the given object at the corresponding key in the tree.
+	 * <p>
+	 * This method is usually called using the root node as the parent node by other methods of this api.
+	 * </p>
+	 * 
+	 * @param key The key where the object will be inserted/updated/deleted.
+	 * @param newNodeBuilder The new node that will be inserted. {@code null} if the node must be deleted.
+	 * @param parentNode The parent node of the current key.
+	 * @param currentKeyLevel The level that tells what part of the key is being handled.
+	 * 
+	 * @return The parent node updated with the given key.
+	 * 
+	 * @throws IllegalArgumentException If a non existing key is given in one of the middle levels on the hierarchy.
+	 * @throws NoSuchElementException If an indexed key is provided for an object that exists in the hierarchy, but does not have an entry for the given index.
+	 */
+	private ImmutableNode setPropertyInternal(@Nonnull final String key, @Nullable final ImmutableNode.Builder newNodeBuilder,
+			@Nonnull final ImmutableNode parentNode, @Nonnull final int currentKeyLevel) {
+		requireNonNull(key, "The key of the object to be added to the configuration must not be <null>.");
+		requireNonNull(parentNode, "The parent node of the object to be added to the configuration must not be <null>.");
 
-			String parentKey = null;
-			String nodeKey = null;
+		final String[] splittedKey = key.split("\\.");
 
-			for(int i = 0; i < splittedKey.length; i++) {
-				if(splittedKey[i].contains(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END))) {
-					parentKey = key.substring(0, key.indexOf(splittedKey[i]) - 1);
-					nodeKey = splittedKey[i].substring(0, splittedKey[i].indexOf(String.format("%s-1%s", DEFAULT_INDEX_START, DEFAULT_INDEX_END)));
-				}
+		String currentKey = splittedKey[currentKeyLevel];
+
+		String currentRawKey = null; //this variable will keep being null if we are not handling with an indexed key at the current level.
+		int keyIndex = Integer.MIN_VALUE; //this variable will keep being Integer.MIN_VALUE if we are not handling with an indexed key at the current level.
+
+		if(currentKey.contains(DEFAULT_INDEX_START)) { //if there's an index lookup in the current key.
+			final int indexStartPosition, indexEndPosition;
+
+			indexStartPosition = currentKey.indexOf(DEFAULT_INDEX_START);
+			indexEndPosition = currentKey.indexOf(DEFAULT_INDEX_END);
+
+			currentRawKey = currentKey.substring(0, indexStartPosition);
+			keyIndex = Integer.parseInt(currentKey.substring(indexStartPosition + 1, indexEndPosition));
+		}
+
+		if(splittedKey.length - 1 == currentKeyLevel && newNodeBuilder != null) { //if we are in the last level of the key and the node builder is not null, we set its name.
+
+			if(currentRawKey == null) {
+				newNodeBuilder.name(currentKey);
+			} else {
+				newNodeBuilder.name(currentRawKey);
 			}
 
-			final HierarchicalConfiguration<ImmutableNode> subHierarchy = configurationAt(parentKey, true);
+		}
 
-			final ImmutableNode rootNode = subHierarchy.getNodeModel().getNodeHandler().getRootNode();
+		for(final ImmutableNode childNode : parentNode.getChildren()) {
 
-			ImmutableNode parentNode = null;
+			if(currentRawKey != null && currentRawKey.equals(childNode.getNodeName())) { //if there's already a node with the current indexed name.
 
-			for(final ImmutableNode node : rootNode.getChildren()) {
-				if(node.getNodeName().equals(parentKey)) {
-					parentNode = node;
+				if(keyIndex == 0) { //if we are looking at the object in the index that we want, we change the variable currentKey to make it fall through a success case.
+					currentKey = currentRawKey;
 				}
-			}
 
-			List<ImmutableNode> nodesToCheck = parentNode.getChildren();
+				if(keyIndex > 0) { //if we did not find the object yet, we decrease the index to look at the next one.
+					keyIndex--;
+					continue;
+				}
 
-			List<ImmutableNode> newChildrenNodes = new ArrayList<ImmutableNode>();
+				if(keyIndex == -1) { //if we have a (-1) index we need to create a new SurfObject.
 
-			for(final ImmutableNode node : nodesToCheck) {
-
-				if(node.getNodeName().equals(nodeKey)) {
-
-					if(!node.getAttributes().containsKey(NODE_TYPE_LABEL)) {
-						newChildrenNodes
-								.add(node.setName(nodeKey).setAttribute(NODE_TYPE_LABEL, NodeType.SURF_OBJECT).setAttribute(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL, nodeKey));
-						continue;
+					if(splittedKey.length - 1 > currentKeyLevel) { //if we are in the middle of the hierarchy, we need to keep building its children until we reach the last level.
+						return parentNode.addChild(
+								setPropertyInternal(key, newNodeBuilder, createHierarchy(new SurfObject(currentRawKey)).name(currentRawKey).create(), currentKeyLevel + 1));
+					} else { //if we are in the last level of the key, we simply need to create the current SurfObject, which has been provided as an argument.
+						return parentNode.addChild(newNodeBuilder.name(currentRawKey).create());
 					}
 
 				}
 
-				newChildrenNodes.add(node);
+				if(keyIndex == Integer.MIN_VALUE) {
+					throw new AssertionError("If we're handling with an indexed key, we should never fall through this point.");
+				}
+
 			}
 
-			subHierarchy.getNodeModel().setRootNode(rootNode.replaceChild(parentNode, parentNode.replaceChildren(newChildrenNodes)));
+			if(currentKey.equals(childNode.getNodeName())) { //if there's already a node with the current name.
+
+				if(splittedKey.length - 1 > currentKeyLevel) { //if we are not in the last level of the key we advance one more level.
+					return parentNode.replaceChild(childNode, setPropertyInternal(key, newNodeBuilder, childNode, currentKeyLevel + 1));
+				}
+
+				if(newNodeBuilder != null) { //if the node builder is not null we replace it.
+					return parentNode.replaceChild(childNode, newNodeBuilder.create());
+				}
+
+				return parentNode.removeChild(childNode); //if the node builder is null we delete it.
+			}
+
 		}
 
+		//if there's no node with the current name.
+		if(splittedKey.length - 1 > currentKeyLevel) { //if we are not in the last level of the key, we need to create a new element in the way or throw an exception.
+
+			if(currentRawKey != null && keyIndex == -1) { //if we are handling with a (-1) index in the middle of the hierarchy, we create a new SurfObject.
+				return parentNode.addChild(
+						setPropertyInternal(key, newNodeBuilder, createHierarchy(new SurfObject(currentRawKey)).name(currentRawKey).create(), currentKeyLevel + 1));
+			}
+
+			if(currentRawKey == null) {
+				throw new IllegalArgumentException("To create a new SurfObjects in the middle of the hierarchy you need to use the (-1) index."); //if a non-existing key was given in the middle of the hierarchy and it doesn't have an index (-1), we throw an exception.
+			}
+
+		}
+
+		if(currentRawKey != null && keyIndex != -1) { //if we are handling with a positive index and we fell through this logic, the key at the given index does not exist.
+			throw new NoSuchElementException(String.format("The element with the key %s that you're trying to use does not exist in the hierarchy", currentKey));
+		}
+
+		return parentNode.addChild(newNodeBuilder.create()); //if we are in the last level of the key and there's no node with the current name, we simply add the new node to the tree.
 	}
 
 	@Override
@@ -835,21 +804,6 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 		}
 
-		/**
-		 * Returns whether {@link NodeType} may represent the type of the object provided in its node form.
-		 * 
-		 * @param obj The object that needs to be represented by an instance of this class.
-		 * @return {@code true} if {@link NodeType} has an instance for the type of the object provided, {@link false} if not.
-		 */
-		public static boolean isNavigable(@Nullable final Object obj) {
-
-			if(obj instanceof SurfObject || obj instanceof Map || obj instanceof List || obj instanceof Set) {
-				return true;
-			} else {
-				return false;
-			}
-
-		}
 	}
 
 }

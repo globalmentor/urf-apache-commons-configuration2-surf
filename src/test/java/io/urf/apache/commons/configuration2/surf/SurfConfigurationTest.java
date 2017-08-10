@@ -42,6 +42,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -116,7 +117,7 @@ public class SurfConfigurationTest {
 	}
 
 	/**
-	 * Test whether {@link SurfConfiguration#setProperty(String, Object)} if working properly.
+	 * Test whether {@link SurfConfiguration#setProperty(String, Object)} is working properly.
 	 * 
 	 * @throws ConfigurationException if any error occur while configuring the file.
 	 * @throws IOException if an I/O error occur.
@@ -267,8 +268,103 @@ public class SurfConfigurationTest {
 			favoriteColorsList.add(whiteColorSurfObject);
 
 			assertThat(config.getProperty("favoriteColors"), equalTo(favoriteColorsList));
+
+			final SurfObject redColorComposition = new SurfObject("Composition");
+
+			redColorComposition.setPropertyValue("red", 255);
+			redColorComposition.setPropertyValue("green", 0);
+			redColorComposition.setPropertyValue("blue", 0);
+
+			config.addProperty("favoriteColors.Color(-1).composition", redColorComposition);
+
+			assertThat(config.getProperty("favoriteColors.Color(8).composition"), equalTo(redColorComposition));
+
+			config.addProperty("favoriteColors.Color(-1).Foo(-1).Bar(-1).Foobar(-1).composition", redColorComposition);
+
+			assertThat(config.getProperty("favoriteColors.Color(9).Foo(0).Bar(0).Foobar(0).composition"), equalTo(redColorComposition));
+
+			//Test to see if the index (-1) works in an empty List
+			config.addProperty("favoriteMoments", new ArrayList<>());
+
+			config.addProperty("favoriteMoments.Moment(-1)", new SurfObject("Momentum"));
+
+			assertThat(config.getProperty("favoriteMoments.Moment(0)"), equalTo(new SurfObject("Momentum")));
+
+			assertThat(config.getProperty("favoriteMoments.Momentum(0)"), equalTo(null));
 		}
 
+	}
+
+	/**
+	 * Test whether {@link SurfConfiguration#setProperty(String, Object)} is throwing an exception when trying to insert an object in an indexed key that does not
+	 * exist.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 * @throws IOException if an I/O error occur.
+	 * @throws URISyntaxException if there's an error while trying to get an URI.
+	 */
+	@Test(expected = NoSuchElementException.class)
+	public void testSetPropertyFFWithIndexOutOfBound() throws ConfigurationException, IOException, URISyntaxException {
+		final FileBasedConfigurationBuilder<SurfConfiguration> configBuilder = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased());
+
+		final SurfConfiguration config = (SurfConfiguration)configBuilder.getConfiguration();
+
+		config.addProperty("Color(8)", new SurfObject("Color"));
+	}
+
+	/**
+	 * Test whether {@link SurfConfiguration#setProperty(String, Object)} is throwing an exception when trying to insert an object in the middle of a hierarchy
+	 * without using the index <code>(-1)</code>.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 * @throws IOException if an I/O error occur.
+	 * @throws URISyntaxException if there's an error while trying to get an URI.
+	 */
+	@Test(expected = IllegalArgumentException.class)
+	public void testSetPropertyFFWithoutIndexAndStringObject() throws ConfigurationException, IOException, URISyntaxException {
+		final FileBasedConfigurationBuilder<SurfConfiguration> configBuilder = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased());
+
+		final SurfConfiguration config = (SurfConfiguration)configBuilder.getConfiguration();
+
+		config.addProperty("favoriteThings.color", "red");
+	}
+	
+	/**
+	 * Test whether {@link SurfConfiguration#setProperty(String, Object)} is throwing an exception when trying to insert an object in the middle of a hierarchy
+	 * without using the index <code>(-1)</code>.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 * @throws IOException if an I/O error occur.
+	 * @throws URISyntaxException if there's an error while trying to get an URI.
+	 */
+	@Test(expected = IllegalArgumentException.class)
+	public void testSetPropertyFFWithoutIndexAndNewSurfObject() throws ConfigurationException, IOException, URISyntaxException {
+		final FileBasedConfigurationBuilder<SurfConfiguration> configBuilder = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased());
+
+		final SurfConfiguration config = (SurfConfiguration)configBuilder.getConfiguration();
+
+		config.addProperty("favoriteThings.Color(-1)", new SurfObject("Color"));
+	}
+
+	/**
+	 * Test whether {@link SurfConfiguration#setProperty(String, Object)} is throwing an exception when trying to insert an object in the middle of a hierarchy
+	 * without using the index <code>(-1)</code>.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 * @throws IOException if an I/O error occur.
+	 * @throws URISyntaxException if there's an error while trying to get an URI.
+	 */
+	@Test(expected = IllegalArgumentException.class)
+	public void testSetPropertyFFWithoutIndexAndSurfObject() throws ConfigurationException, IOException, URISyntaxException {
+		final FileBasedConfigurationBuilder<SurfConfiguration> configBuilder = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased());
+
+		final SurfConfiguration config = (SurfConfiguration)configBuilder.getConfiguration();
+
+		config.addProperty("favoriteThings.Color(0)", new SurfObject("Color"));
 	}
 
 	/**

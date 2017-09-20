@@ -243,8 +243,8 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * <pre>
  * <code>
  * config.getProperty("name"); //returns "Jane Doe"
- * </pre>
  * </code>
+ * </pre>
  * 
  * <p>
  * To get a property in its specific class, the class must be provided to the following method:
@@ -253,8 +253,8 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * <pre>
  * <code>
  * config.getProperty("favoriteThings", Boolean.class, "authenticated"); //returns true. <em>If the class would not be provided, a string representation of the value would be returned.</em>
- * </pre>
  * </code>
+ * </pre>
  * 
  * <p>
  * Here is an example of how to get a property in a lower level in the hierarchy:
@@ -263,8 +263,8 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * <pre>
  * <code>
  * config.getProperty("favoriteThings.aliquot"); //returns "User's favorite word.".
- * </pre>
  * </code>
+ * </pre>
  * 
  * <p>
  * Here is an example of how to make a lookup in a {@link List}:
@@ -273,14 +273,114 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * <pre>
  * <code>
  * config.getProperty("rainbow.Color(5)"); //returns "indigo". <em>The lookup is zero-based, and it only works with {@link SurfObject SurfObjects} with their type names properly set up.</em>
- * </pre>
  * </code>
+ * </pre>
+ * 
+ * Following Apache Configuration's documentation for XML, the index <code>-1</code> can be used to create a new {@link SurfObject} in a {@link List}.
+ * 
+ * For example, if you have the following {@link List}:
  * 
  * <pre>
  * <code>
- * config.getProperty("rainbow.Color(-1)"); //creates a new empty {@link SurfObject}.
- * </pre>
+ * rainbow : [
+ *     *Color: 
+ *       name = "red"
+ *     ;
+ *     *Color: 
+ *       name = "orange"
+ *     ;
+ *     *Color: 
+ *       name = "yellow"
+ *     ;
+ *     *Color: 
+ *       name = "green"
+ *     ;
+ *     *Color: 
+ *       name = "blue"
+ *     ;
+ *     *Color: 
+ *       name = "indigo"
+ *     ;
+ *   ]
  * </code>
+ * </pre>
+ * 
+ * You can use the following statement for creating a new item:
+ * 
+ * <pre>
+ * <code>
+ * config.addProperty("rainbow.Color(-1)"); //creates a new empty {@link SurfObject}.
+ * </code>
+ * </pre>
+ * 
+ * This is how the {@link List} will look like:
+ * 
+ * <pre>
+ * <code>
+ * rainbow : [
+ *     *Color: 
+ *       name = "red"
+ *     ;
+ *     *Color: 
+ *       name = "orange"
+ *     ;
+ *     *Color: 
+ *       name = "yellow"
+ *     ;
+ *     *Color: 
+ *       name = "green"
+ *     ;
+ *     *Color: 
+ *       name = "blue"
+ *     ;
+ *     *Color: 
+ *       name = "indigo"
+ *     ;
+ *     *Color: 
+ *     ;
+ *   ]
+ * </code>
+ * </pre>
+ * 
+ * Adding elements at the same time that a {@link SurfObject} is created is also allowed.
+ * 
+ * For example:
+ * 
+ * <pre>
+ * <code>
+ * config.addProperty("rainbow.Color(-1).name", "violet"); //creates a new empty {@link SurfObject} and adds a property named <code>name</code> and with the value <code>"violet"</code> in it.
+ * </code>
+ * </pre>
+ * 
+ * This is how the {@link List} created above would look like if we had used this statement:
+ * 
+ * <pre>
+ * <code>
+ * rainbow : [
+ *     *Color: 
+ *       name = "red"
+ *     ;
+ *     *Color: 
+ *       name = "orange"
+ *     ;
+ *     *Color: 
+ *       name = "yellow"
+ *     ;
+ *     *Color: 
+ *       name = "green"
+ *     ;
+ *     *Color: 
+ *       name = "blue"
+ *     ;
+ *     *Color: 
+ *       name = "indigo"
+ *     ;
+ *     *Color: 
+ *       name = "violet"
+ *     ;
+ *   ]
+ * </code>
+ * </pre>
  * 
  * <p>
  * The SURF document serialized will always be formatted. See {@link SurfSerializer#setFormatted(boolean)} for more information.

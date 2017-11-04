@@ -26,7 +26,7 @@ import org.junit.rules.TemporaryFolder;
 import com.globalmentor.collections.*;
 import com.globalmentor.java.CodePointCharacter;
 
-import io.urf.surf.parser.SurfObject;
+import io.urf.surf.model.SurfObject;
 import io.urf.surf.parser.SurfParser;
 
 import static org.hamcrest.Matchers.*;

@@ -29,6 +29,7 @@ import org.apache.commons.configuration2.tree.*;
 
 import com.globalmentor.collections.NameValuePairMapEntry;
 
+import io.urf.surf.model.SurfObject;
 import io.urf.surf.parser.*;
 import io.urf.surf.serializer.*;
 

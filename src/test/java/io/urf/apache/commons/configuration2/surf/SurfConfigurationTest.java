@@ -24,28 +24,19 @@ import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 
 import com.globalmentor.collections.*;
+import com.globalmentor.collections.Collections;
 import com.globalmentor.java.CodePointCharacter;
 
-import io.urf.surf.model.SurfObject;
-import io.urf.surf.parser.SurfParser;
+import io.urf.surf.*;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.net.*;
 import java.nio.file.*;
 import java.time.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Tests to see if the {@link SurfConfiguration} is working correctly.

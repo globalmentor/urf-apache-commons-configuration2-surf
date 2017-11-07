@@ -147,7 +147,7 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  *     "jdoe"
  *     "janed"
  *   ]
- *   homePage = <http://www.example.com/jdoe/>
+ *   homePage = &lt;http://www.example.com/jdoe/&gt;
  *   salt = %Zm9vYmFy
  *   joined = @2016-01-23,
  *   credits = 123
@@ -196,7 +196,7 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  *     "jdoe"
  *     "janed"
  *   ]
- *   homePage : <http://www.example.com/jdoe/>
+ *   homePage : &lt;http://www.example.com/jdoe/&gt;
  *   salt : %Zm9vYmFy
  *   joined : @2016-01-23,
  *   credits : 123

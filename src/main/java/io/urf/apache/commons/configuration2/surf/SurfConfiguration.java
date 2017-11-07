@@ -74,8 +74,8 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * 
  * <pre>
  * <code>
- * final Configuration config = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
-				.configure(new Parameters().fileBased().setFile(<var>configurationFile<var>)).getConfiguration();
+ * final Configuration config = new FileBasedConfigurationBuilder&lt;SurfConfiguration&gt;(SurfConfiguration.class)
+				.configure(new Parameters().fileBased().setFile(<var>configurationFile</var>)).getConfiguration();
  * </code>
  * </pre>
  * 
@@ -140,14 +140,14 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  *   authenticated = true
  *   sort = 'd'
  *   name = "Jane Doe"
- *   id = &bb8e7dbe-f0b4-4d94-a1cf-46ed0e920832
+ *   id = &amp;bb8e7dbe-f0b4-4d94-a1cf-46ed0e920832
  *   email = ^jane_doe@example.com
  *   phone = +12015550123
  *   aliases = [
  *     "jdoe"
  *     "janed"
  *   ]
- *   homePage = <http://www.example.com/jdoe/>
+ *   homePage = &lt;http://www.example.com/jdoe/&gt;
  *   salt = %Zm9vYmFy
  *   joined = @2016-01-23,
  *   credits = 123
@@ -189,14 +189,14 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  *   authenticated : true
  *   sort : 'd'
  *   name : "Jane Doe"
- *   id : &bb8e7dbe-f0b4-4d94-a1cf-46ed0e920832
+ *   id : &amp;bb8e7dbe-f0b4-4d94-a1cf-46ed0e920832
  *   email : ^jane_doe@example.com
  *   phone : +12015550123
  *   aliases : [
  *     "jdoe"
  *     "janed"
  *   ]
- *   homePage : <http://www.example.com/jdoe/>
+ *   homePage : &lt;http://www.example.com/jdoe/&gt;
  *   salt : %Zm9vYmFy
  *   joined : @2016-01-23,
  *   credits : 123
@@ -347,7 +347,7 @@ import static org.apache.commons.configuration2.tree.DefaultExpressionEngineSymb
  * 
  * <pre>
  * <code>
- * config.addProperty("rainbow.Color(-1).name", "violet"); //creates a new empty {@link SurfObject} and adds a property named <code>name</code> and with the value <code>"violet"</code> in it.
+ * config.addProperty("rainbow.Color(-1).name", "violet"); //creates a new empty {@link SurfObject} and adds a property named "name" and with the value "violet" in it.
  * </code>
  * </pre>
  * 

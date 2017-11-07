@@ -593,10 +593,10 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 			List<Map.Entry<String, Object>> entries = new LinkedList<>();
 
 			if(childNodeValue instanceof SurfObject) {
-				((SurfObject)childNodeValue).getTypeName().ifPresent(typeName -> childNodeBuilder.addAttribute(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL, typeName));
+				((SurfObject)childNodeValue).getTypeHandle().ifPresent(typeName -> childNodeBuilder.addAttribute(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL, typeName));
 				((SurfObject)childNodeValue).getTag().ifPresent(tag -> childNodeBuilder.addAttribute(SURF_OBJECT_TAG_ATTRIBUTE_LABEL, tag));
 
-				((SurfObject)childNodeValue).getPropertyNameValuePairs().forEach(entry -> entries.add(new NameValuePairMapEntry<String, Object>(entry)));
+				((SurfObject)childNodeValue).getProperties().forEach(entries::add);
 			}
 
 			else if(childNodeValue instanceof Map) {
@@ -608,7 +608,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 					String typeName = null;
 
 					if(entry instanceof SurfObject) {
-						typeName = ((SurfObject)entry).getTypeName().orElse(null); //if the child node is a SurfObject, we use its type name as node name to make sure that the index lookup will work.
+						typeName = ((SurfObject)entry).getTypeHandle().orElse(null); //if the child node is a SurfObject, we use its type name as node name to make sure that the index lookup will work.
 					}
 
 					entries.add(new NameValuePairMapEntry<String, Object>(typeName, entry));

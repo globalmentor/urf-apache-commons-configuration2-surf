@@ -382,7 +382,7 @@ public class SurfConfigurationTest {
 
 		assertThat(surfDocument.getPropertyCount(), equalTo(0));
 
-		assertThat(surfDocument.getTypeName().get(), equalTo("Configuration"));
+		assertThat(surfDocument.getTypeHandle().get(), equalTo("Configuration"));
 	}
 
 	/**
@@ -399,7 +399,7 @@ public class SurfConfigurationTest {
 
 		assertThat(config.isEmpty(), is(true));
 
-		assertThat(((SurfObject)config.getSurfDocument()).getTypeName().get(), equalTo("Configuration"));
+		assertThat(((SurfObject)config.getSurfDocument()).getTypeHandle().get(), equalTo("Configuration"));
 	}
 
 	/**
@@ -416,7 +416,7 @@ public class SurfConfigurationTest {
 
 		assertThat(config.isEmpty(), is(true));
 
-		assertThat(((SurfObject)config.getSurfDocument()).getTypeName(), equalTo(Optional.empty()));
+		assertThat(((SurfObject)config.getSurfDocument()).getTypeHandle(), equalTo(Optional.empty()));
 		assertThat(((SurfObject)config.getSurfDocument()).getTag(), equalTo(Optional.empty()));
 	}
 

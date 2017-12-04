@@ -401,6 +401,9 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	/** The label used as key to the tag of a {@link SurfObject} */
 	private static final String SURF_OBJECT_TAG_ATTRIBUTE_LABEL = "tag";
 
+	/** The label used as key to the id of a {@link SurfObject} */
+	private static final String SURF_OBJECT_ID_ATTRIBUTE_LABEL = "id";
+
 	/**
 	 * {@inheritDoc}
 	 * 
@@ -524,8 +527,14 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 			//in this block we get the object of the current child node.
 			if(NodeType.SURF_OBJECT.equals(childNodeType)) {
-				childObject = new SurfObject(((URI)childNode.getAttributes().get(SURF_OBJECT_TAG_ATTRIBUTE_LABEL)),
-						((String)childNode.getAttributes().get(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL)));
+				if(childNode.getAttributes().get(SURF_OBJECT_ID_ATTRIBUTE_LABEL) != null) {
+					childObject = new SurfObject((String)childNode.getAttributes().get(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL),
+							(String)childNode.getAttributes().get(SURF_OBJECT_ID_ATTRIBUTE_LABEL));
+				} else {
+					childObject = new SurfObject(((URI)childNode.getAttributes().get(SURF_OBJECT_TAG_ATTRIBUTE_LABEL)),
+							((String)childNode.getAttributes().get(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL)));
+				}
+
 			} else if(NodeType.MAP.equals(childNodeType)) {
 				childObject = new HashMap<String, Object>();
 			} else if(NodeType.LIST.equals(childNodeType)) {
@@ -595,6 +604,7 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 			if(childNodeValue instanceof SurfObject) {
 				((SurfObject)childNodeValue).getTypeHandle().ifPresent(typeName -> childNodeBuilder.addAttribute(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL, typeName));
 				((SurfObject)childNodeValue).getTag().ifPresent(tag -> childNodeBuilder.addAttribute(SURF_OBJECT_TAG_ATTRIBUTE_LABEL, tag));
+				((SurfObject)childNodeValue).getId().ifPresent(id -> childNodeBuilder.addAttribute(SURF_OBJECT_ID_ATTRIBUTE_LABEL, id));
 
 				((SurfObject)childNodeValue).getProperties().forEach(entries::add);
 			}

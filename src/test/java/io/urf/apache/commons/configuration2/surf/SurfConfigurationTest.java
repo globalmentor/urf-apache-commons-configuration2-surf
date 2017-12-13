@@ -287,6 +287,36 @@ public class SurfConfigurationTest {
 	}
 
 	/**
+	 * Test whether {@link SurfConfiguration#setProperty(String, Object)} is working properly with SurfObjects with special properties.
+	 * 
+	 * @throws ConfigurationException if any error occur while configuring the file.
+	 * @throws IOException if an I/O error occur.
+	 * @throws URISyntaxException if there's an error while trying to get an URI.
+	 */
+	@Test
+	public void testSetPropertyWithSurfSpecialProperties() throws ConfigurationException, IOException, URISyntaxException {
+		final FileBasedConfigurationBuilder<SurfConfiguration> configBuilder = new FileBasedConfigurationBuilder<SurfConfiguration>(SurfConfiguration.class)
+				.configure(new Parameters().fileBased());
+
+		final SurfConfiguration config = (SurfConfiguration)configBuilder.getConfiguration();
+
+		final SurfObject simpleSurfObject = new SurfObject();
+		final SurfObject taggedSurfObject = new SurfObject(URI.create("urn:uuid:bb8e7dbe-f0b4-4d94-a1cf-46ed0e920832"));
+		final SurfObject typeHandledSurfObject = new SurfObject("typeHandle");
+		final SurfObject complexSurfObject = new SurfObject("typeHandle", "id");
+
+		config.addProperty("simpleSurfObject", simpleSurfObject);
+		config.addProperty("taggedSurfObject", taggedSurfObject);
+		config.addProperty("identifiedSurfObject", typeHandledSurfObject);
+		config.addProperty("complexSurfObject", complexSurfObject);
+
+		assertThat(config.getProperty("simpleSurfObject"), equalTo(simpleSurfObject));
+		assertThat(config.getProperty("taggedSurfObject"), equalTo(taggedSurfObject));
+		assertThat(config.getProperty("identifiedSurfObject"), equalTo(typeHandledSurfObject));
+		assertThat(config.getProperty("complexSurfObject"), equalTo(complexSurfObject));
+	}
+
+	/**
 	 * Test whether {@link SurfConfiguration#setProperty(String, Object)} is throwing an exception when trying to insert an object in an indexed key that does not
 	 * exist.
 	 * 
@@ -321,7 +351,7 @@ public class SurfConfigurationTest {
 
 		config.addProperty("favoriteThings.color", "red");
 	}
-	
+
 	/**
 	 * Test whether {@link SurfConfiguration#setProperty(String, Object)} is throwing an exception when trying to insert an object in the middle of a hierarchy
 	 * without using the index <code>(-1)</code>.

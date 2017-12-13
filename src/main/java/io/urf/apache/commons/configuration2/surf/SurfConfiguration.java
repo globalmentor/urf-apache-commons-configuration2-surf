@@ -396,10 +396,13 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 	private static final String NODE_TYPE_LABEL = "nodeType";
 
 	/** The label used as key to the type name of a {@link SurfObject} */
-	private static final String SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL = "typeName";
+	private static final String SURF_OBJECT_TYPE_HANDLE_ATTRIBUTE_LABEL = "typeHandle";
 
 	/** The label used as key to the tag of a {@link SurfObject} */
 	private static final String SURF_OBJECT_TAG_ATTRIBUTE_LABEL = "tag";
+
+	/** The label used as key to the id of a {@link SurfObject} */
+	private static final String SURF_OBJECT_ID_ATTRIBUTE_LABEL = "id";
 
 	/**
 	 * {@inheritDoc}
@@ -481,8 +484,15 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 			switch((NodeType)hierarchyRootNodeType) {
 				case SURF_OBJECT:
-					return toObject(new SurfObject(((URI)hierarchyRootNode.getAttributes().get(SURF_OBJECT_TAG_ATTRIBUTE_LABEL)),
-							((String)hierarchyRootNode.getAttributes().get(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL))), hierarchyRootNode.getChildren());
+
+					if(hierarchyRootNode.getAttributes().get(SURF_OBJECT_ID_ATTRIBUTE_LABEL) != null) {
+						return toObject(new SurfObject((String)hierarchyRootNode.getAttributes().get(SURF_OBJECT_TYPE_HANDLE_ATTRIBUTE_LABEL),
+								(String)hierarchyRootNode.getAttributes().get(SURF_OBJECT_ID_ATTRIBUTE_LABEL)), hierarchyRootNode.getChildren());
+					} else {
+						return toObject(new SurfObject(((URI)hierarchyRootNode.getAttributes().get(SURF_OBJECT_TAG_ATTRIBUTE_LABEL)),
+								((String)hierarchyRootNode.getAttributes().get(SURF_OBJECT_TYPE_HANDLE_ATTRIBUTE_LABEL))), hierarchyRootNode.getChildren());
+					}
+
 				case MAP:
 					return toObject(new HashMap<String, Object>(), hierarchyRootNode.getChildren());
 				case LIST:
@@ -524,8 +534,14 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 
 			//in this block we get the object of the current child node.
 			if(NodeType.SURF_OBJECT.equals(childNodeType)) {
-				childObject = new SurfObject(((URI)childNode.getAttributes().get(SURF_OBJECT_TAG_ATTRIBUTE_LABEL)),
-						((String)childNode.getAttributes().get(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL)));
+				if(childNode.getAttributes().get(SURF_OBJECT_ID_ATTRIBUTE_LABEL) != null) {
+					childObject = new SurfObject((String)childNode.getAttributes().get(SURF_OBJECT_TYPE_HANDLE_ATTRIBUTE_LABEL),
+							(String)childNode.getAttributes().get(SURF_OBJECT_ID_ATTRIBUTE_LABEL));
+				} else {
+					childObject = new SurfObject(((URI)childNode.getAttributes().get(SURF_OBJECT_TAG_ATTRIBUTE_LABEL)),
+							((String)childNode.getAttributes().get(SURF_OBJECT_TYPE_HANDLE_ATTRIBUTE_LABEL)));
+				}
+
 			} else if(NodeType.MAP.equals(childNodeType)) {
 				childObject = new HashMap<String, Object>();
 			} else if(NodeType.LIST.equals(childNodeType)) {
@@ -593,8 +609,9 @@ public class SurfConfiguration extends BaseHierarchicalConfiguration implements 
 			List<Map.Entry<String, Object>> entries = new LinkedList<>();
 
 			if(childNodeValue instanceof SurfObject) {
-				((SurfObject)childNodeValue).getTypeHandle().ifPresent(typeName -> childNodeBuilder.addAttribute(SURF_OBJECT_TYPE_NAME_ATTRIBUTE_LABEL, typeName));
+				((SurfObject)childNodeValue).getTypeHandle().ifPresent(typeName -> childNodeBuilder.addAttribute(SURF_OBJECT_TYPE_HANDLE_ATTRIBUTE_LABEL, typeName));
 				((SurfObject)childNodeValue).getTag().ifPresent(tag -> childNodeBuilder.addAttribute(SURF_OBJECT_TAG_ATTRIBUTE_LABEL, tag));
+				((SurfObject)childNodeValue).getId().ifPresent(id -> childNodeBuilder.addAttribute(SURF_OBJECT_ID_ATTRIBUTE_LABEL, id));
 
 				((SurfObject)childNodeValue).getProperties().forEach(entries::add);
 			}
